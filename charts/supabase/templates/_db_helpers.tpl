@@ -179,3 +179,22 @@ Retrieve key of the Analyticsdb postgresql secret
     {{- end -}}
 {{- end -}}
 {{- end -}}
+
+{{/*
+Return supabase kong connection details
+*/}}
+{{- define "supabase.api" -}}
+- name: SUPABASE_URL
+  value: "http://{{ include "supabase.kong.fullname" . }}.{{ include "common.names.namespace" . }}.svc.{{ .Values.clusterDomain }}:{{ .Values.kong.service.ports.proxyHttp }}"
+- name: SUPABASE_ANON_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.jwt.secretName" . }}
+      key: {{ include "supabase.jwt.anonSecretKey" . }}
+- name: SUPABASE_SERVICE_KEY
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.jwt.secretName" . }}
+      key: {{ include "supabase.jwt.serviceSecretKey" . }}
+
+{{- end -}}

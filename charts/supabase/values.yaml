@@ -2583,6 +2583,7 @@ storage:
     GLOBAL_S3_PROTOCOL: "http"
     GLOBAL_S3_FORCE_PATH_STYLE: "true"
     AWS_DEFAULT_REGION: "stub"
+    TUS_URL_PATH: "/storage/v1/upload/resumable"
     {{- if and .Values.imgproxy.enabled .Values.minio.enabled }}
     ENABLE_IMAGE_TRANSFORMATION: "true"
     IMGPROXY_URL: "http://{{ include "supabase.imgproxy.fullname" . }}:{{ .Values.imgproxy.service.ports.http }}"
