@@ -521,7 +521,7 @@ analyticsdb:
   postgresqlSharedPreloadLibraries: "pg_stat_statements, pg_stat_monitor, pgaudit, plpgsql, plpgsql_check, pg_cron, pg_net, pgsodium, timescaledb, auto_explain"
   image:
     repository: bitnami/supabase-postgres
-    tag: "15.1.1-debian-12-r65"
+    tag: "15.1.1-debian-12-r69"
   primary:
     extendedConfiguration: |-
       wal_level = logical
@@ -1783,7 +1783,7 @@ realtime:
   image:
     registry: docker.io
     repository: bitnami/supabase-realtime
-    tag: 2.29.5-debian-12-r0
+    tag: 2.29.9-debian-12-r0
     digest: ""
     ## Specify a imagePullPolicy
     ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
@@ -3638,7 +3638,7 @@ volumePermissions:
 psqlImage:
   registry: docker.io
   repository: bitnami/supabase-postgres
-  tag: 15.1.1-debian-12-r65
+  tag: "15.1.1-debian-12-r69"
   digest: ""
   ## Specify a imagePullPolicy
   ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
@@ -3814,7 +3814,7 @@ postgresql:
   image:
     registry: docker.io
     repository: bitnami/supabase-postgres
-    tag: 15.1.1-debian-12-r65
+    tag: "15.1.1-debian-12-r69"
     digest: ""
     ## Specify a imagePullPolicy
     ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'

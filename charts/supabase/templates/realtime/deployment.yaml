@@ -107,7 +107,11 @@ spec:
               subPath: app-tzdata-dir
 
         - name: post-install-job-schema
-          image: postgres:16
+          image: {{ template "supabase.psql.image" . }}
+          imagePullPolicy: {{ .Values.psqlImage.pullPolicy }}
+          {{- if .Values.auth.containerSecurityContext.enabled }}
+          securityContext: {{- include "common.compatibility.renderSecurityContext" (dict "secContext" .Values.auth.containerSecurityContext "context" $) | nindent 12 }}
+          {{- end }}
           command: ["/bin/sh"]
           args:
             - -c

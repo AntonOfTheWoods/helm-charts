@@ -45,7 +45,11 @@ reusable db check-db-ready
 */}}
 {{- define "supabase.database.checkdbready" }}
 - name: check-supabase-db-ready
-  image: postgres:16
+  image: {{ template "supabase.psql.image" . }}
+  imagePullPolicy: {{ .Values.psqlImage.pullPolicy }}
+  {{- if .Values.auth.containerSecurityContext.enabled }}
+  securityContext: {{- include "common.compatibility.renderSecurityContext" (dict "secContext" .Values.auth.containerSecurityContext "context" $) | nindent 4 }}
+  {{- end }}
   command: ['sh', '-c',
     'until psql -c "select 1;";
     do echo waiting for database; sleep 2; done;']
@@ -153,7 +157,11 @@ reusable db check-db-ready
 */}}
 {{- define "supabase.analyticsdb.database.checkdbready" }}
 - name: check-analyticsdb-db-ready
-  image: postgres:16
+  image: {{ template "supabase.psql.image" . }}
+  imagePullPolicy: {{ .Values.psqlImage.pullPolicy }}
+  {{- if .Values.auth.containerSecurityContext.enabled }}
+  securityContext: {{- include "common.compatibility.renderSecurityContext" (dict "secContext" .Values.auth.containerSecurityContext "context" $) | nindent 4 }}
+  {{- end }}
   command: ['sh', '-c',
     'until psql -c "select 1;";
     do echo waiting for database; sleep 2; done;']
