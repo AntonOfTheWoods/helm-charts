@@ -1,13 +1,13 @@
 dependencies:
 - name: postgresql
   repository: https://charts.bitnami.com/bitnami
-  version: 15.5.38
+  version: 16.2.2
 - name: postgresql
   repository: https://charts.bitnami.com/bitnami
-  version: 15.5.38
+  version: 16.2.2
 - name: kong
   repository: https://charts.bitnami.com/bitnami
-  version: 12.2.11
+  version: 14.0.9
 - name: minio
   repository: https://charts.bitnami.com/bitnami
   version: 14.8.5
@@ -17,5 +17,5 @@ dependencies:
 - name: common
   repository: https://charts.bitnami.com/bitnami
   version: 2.27.0
-digest: sha256:7453e5477c7abf3190c285abfe1b6b2f6eeb7f548f3ab0c22b5000a2c9185627
-generated: "2024-11-16T20:23:19.551050433+08:00"
+digest: sha256:185071e167be7fa6e511a0cea4d61f3ee32261e65bfff2d6cd7023541f462fe9
+generated: "2024-11-22T18:33:24.157586407+08:00"
