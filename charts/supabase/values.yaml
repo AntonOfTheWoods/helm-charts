@@ -738,9 +738,12 @@ imgproxy:
   existingConfigmap: ""
   extraConfigExistingConfigmap: ""
   image:
-    registry: ghcr.io
+    # FIXME: why doesn't this work???
+    # registry: ghcr.io
+    # repository: imgproxy/imgproxy
     # FIXME: upstream is using `image: darthsim/imgproxy:v3.8.0`
-    repository: imgproxy/imgproxy
+    registry: docker.io
+    repository: darthsim/imgproxy
     tag: v3.26.1
     digest: ""
     pullPolicy: IfNotPresent
@@ -2635,8 +2638,12 @@ storage:
   image:
     registry: docker.io
     # FIXME: maybe `image: supabase/storage-api:v1.11.13` will work???
-    repository: bitnami/supabase-storage
-    tag: 1.10.3-debian-12-r0
+    repository: supabase/storage-api
+    tag: v1.11.13
+
+    # broken!!!
+    # repository: bitnami/supabase-storage
+    # tag: 1.10.3-debian-12-r0
     digest: ""
     ## Specify a imagePullPolicy
     ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'

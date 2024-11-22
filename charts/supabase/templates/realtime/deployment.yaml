@@ -175,6 +175,10 @@ spec:
               value: "IPv4"
             - name: REALTIME_IP_VERSION
               value: "IPv4"
+            - name: APP_NAME
+              value: realtime
+            - name: SEED_SELF_HOST
+              value: "true"
 
             {{- if .Values.realtime.extraEnvVars }}
             {{- include "common.tplvalues.render" (dict "value" .Values.realtime.extraEnvVars "context" $) | nindent 12 }}
