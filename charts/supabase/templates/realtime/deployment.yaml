@@ -167,6 +167,15 @@ spec:
                   name: {{ include "supabase.realtime.secretName" . | quote }}
                   key: {{ include "supabase.realtime.dbEncKeyName" . | quote }}
 
+            # sigh, these are in the documentation (as of this commit) but aren't
+            # actually used. You MUST have IPv6. Sigh. Sigh...
+            - name: DB_IP_VERSION
+              value: "IPv4"
+            - name: REPLICATION_MODE
+              value: "IPv4"
+            - name: REALTIME_IP_VERSION
+              value: "IPv4"
+
             {{- if .Values.realtime.extraEnvVars }}
             {{- include "common.tplvalues.render" (dict "value" .Values.realtime.extraEnvVars "context" $) | nindent 12 }}
             {{- end }}
