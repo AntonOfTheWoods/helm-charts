@@ -7,7 +7,7 @@ dependencies:
   version: 16.2.2
 - name: kong
   repository: https://charts.bitnami.com/bitnami
-  version: 14.0.9
+  version: 15.0.0
 - name: minio
   repository: https://charts.bitnami.com/bitnami
   version: 14.8.5
@@ -17,5 +17,5 @@ dependencies:
 - name: common
   repository: https://charts.bitnami.com/bitnami
   version: 2.27.0
-digest: sha256:185071e167be7fa6e511a0cea4d61f3ee32261e65bfff2d6cd7023541f462fe9
-generated: "2024-11-22T18:33:24.157586407+08:00"
+digest: sha256:f52fddab18e1ea171fe763b5da3b58e091ebc55a99954f0a0d65fd7579ea559c
+generated: "2024-11-24T16:18:15.441909215+08:00"
