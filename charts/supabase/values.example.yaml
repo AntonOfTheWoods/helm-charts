@@ -13,7 +13,6 @@ functions:
   resourcesPreset: "none"
 imgproxy:
   resourcesPreset: "none"
-supabase:
 
 auth:
   resourcesPreset: "none"

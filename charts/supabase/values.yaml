@@ -610,7 +610,7 @@ functions:
     registry: docker.io
     repository: supabase/edge-runtime
     # tag: v1.46.0
-    tag: v1.62.3
+    tag: v1.63.0
     digest: ""
     pullPolicy: IfNotPresent
     pullSecrets: []
@@ -3127,6 +3127,7 @@ studio:
   image:
     registry: docker.io
     repository: bitnami/supabase-studio
+    # 20241106-f29003e
     tag: 1.24.4-debian-12-r0
     digest: ""
     ## Specify a imagePullPolicy
