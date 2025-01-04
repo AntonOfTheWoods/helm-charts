@@ -79,47 +79,8 @@ spec:
       {{- end }}
       initContainers:
         {{- if not .Values.diagnosticMode.enabled }}
-        {{- include "supabase.waitForDBInitContainer" . | nindent 8 }}
+        {{- include "supabase.database.checkdbready" . | nindent 8 }}
         {{- end }}
-        - name: create-tzdata-priv
-          image: {{ template "supabase.realtime.image" . }}
-          imagePullPolicy: {{ .Values.realtime.image.pullPolicy }}
-          {{- if .Values.realtime.containerSecurityContext.enabled }}
-          securityContext: {{- include "common.compatibility.renderSecurityContext" (dict "secContext" .Values.realtime.containerSecurityContext "context" $) | nindent 12 }}
-          {{- end }}
-          command:
-            - /bin/bash
-          args:
-            - -ec
-            - |
-              cp -r /opt/bitnami/supabase-realtime/lib/tzdata-*/priv/* /priv
-          {{- if .Values.realtime.resources }}
-          resources: {{- toYaml .Values.realtime.resources | nindent 12 }}
-          {{- else if ne .Values.realtime.resourcesPreset "none" }}
-          resources: {{- include "common.resources.preset" (dict "type" .Values.realtime.resourcesPreset) | nindent 12 }}
-          {{- end }}
-          volumeMounts:
-            - name: empty-dir
-              mountPath: /tmp
-              subPath: tmp-dir
-            - name: empty-dir
-              mountPath: /priv
-              subPath: app-tzdata-dir
-
-        - name: post-install-job-schema
-          image: {{ template "supabase.psql.image" . }}
-          imagePullPolicy: {{ .Values.psqlImage.pullPolicy }}
-          {{- if .Values.auth.containerSecurityContext.enabled }}
-          securityContext: {{- include "common.compatibility.renderSecurityContext" (dict "secContext" .Values.auth.containerSecurityContext "context" $) | nindent 12 }}
-          {{- end }}
-          command: ["/bin/sh"]
-          args:
-            - -c
-            - >-
-              echo "CREATE SCHEMA IF NOT EXISTS _realtime;" | psql &&
-              echo "ALTER SCHEMA _realtime OWNER TO supabase_admin;" | psql;
-          env:
-            {{ include "supabase.database.pgenvvars" . | indent 10 }}
         {{- if .Values.realtime.initContainers }}
           {{- include "common.tplvalues.render" (dict "value" .Values.realtime.initContainers "context" $) | nindent 8 }}
         {{- end }}
