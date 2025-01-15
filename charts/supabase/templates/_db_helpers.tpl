@@ -134,22 +134,22 @@ Return the Analyticsdb PostgreSQL User
 {{- end -}}
 
 {{/*
-reusable supabase env vars
+reusable supabase analyticsdb env vars
 */}}
 {{- define "supabase.analyticsdb.database.envvars" }}
-- name: PGDATABASE
-  value: {{ include "supabase.analyticsdb.database.name" . | quote }}
 - name: PGUSER
   value: {{ include "supabase.analyticsdb.database.user" . | quote }}
+- name: PGHOST
+  value: {{ include "supabase.analyticsdb.database.host" . | quote }}
+- name: PGPORT
+  value: {{ include "supabase.analyticsdb.database.port" . | quote }}
+- name: PGDATABASE
+  value: {{ include "supabase.analyticsdb.database.name" . | quote }}
 - name: PGPASSWORD
   valueFrom:
     secretKeyRef:
       name: {{ include "supabase.analyticsdb.database.secretName" . }}
       key: {{ include "supabase.analyticsdb.database.passwordKey" . | quote }}
-- name: PGHOST
-  value: {{ include "supabase.analyticsdb.database.host" . | quote }}
-- name: PGPORT
-  value: {{ include "supabase.analyticsdb.database.port" . | quote }}
 {{- end -}}
 
 {{/*

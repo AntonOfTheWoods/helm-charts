@@ -155,4 +155,17 @@ data:
               hide_groups_header: true
               allow:
                 - admin
+
+      ## Edge Functions routes
+      - name: functions-v1
+        _comment: 'Edge Functions: /functions/v1/* -> http://{{ include "supabase.functions.fullname" . }}:{{ .Values.functions.service.ports.http }}/*'
+        url: http://{{ include "supabase.functions.fullname" . }}:{{ .Values.functions.service.ports.http }}/
+        routes:
+          - name: functions-v1-all
+            strip_path: true
+            paths:
+              - /functions/v1/
+        plugins:
+          - name: cors
+
 {{- end }}

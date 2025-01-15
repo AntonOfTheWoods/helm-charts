@@ -590,7 +590,7 @@ functions:
   entrypointPath: /home/deno/functions/main
 
   workerMemoryLimitMb: 150
-  workerTimeoutMs: 60000
+  workerTimeoutSec: 400
   workerCPUTimeSoftLimitMs: 1000
   workerCPUTimeHardLimitMs: 2000
   workerNoModuleCache: false
@@ -892,7 +892,7 @@ auth:
     GOTRUE_URI_ALLOW_LIST: "*"
     GOTRUE_DISABLE_SIGNUP: "false"
     GOTRUE_DB_DRIVER: "postgres"
-    GOTRUE_DB_MIGRATIONS_PATH: "/opt/bitnami/gotrue/"
+    GOTRUE_DB_MIGRATIONS_PATH: "/usr/local/etc/auth/migrations/"
     GOTRUE_JWT_DEFAULT_GROUP_NAME: "authenticated"
     GOTRUE_JWT_ADMIN_ROLES: "service_role"
     GOTRUE_JWT_AUD: "authenticated"
