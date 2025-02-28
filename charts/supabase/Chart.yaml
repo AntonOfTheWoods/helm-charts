@@ -3,21 +3,21 @@ annotations:
 apiVersion: v2
 appVersion: 1.24.4
 dependencies:
-- name: postgresql
-  repository: https://charts.bitnami.com/bitnami
-  version: 16.x.x
-  condition: postgresql.enabled
-- name: postgresql
-  version: 16.x
-  alias: analyticsdb
-  repository: https://charts.bitnami.com/bitnami
-  condition: analyticsdb.enabled
+# - name: postgresql
+#   repository: https://charts.bitnami.com/bitnami
+#   version: 16.x.x
+#   condition: postgresql.enabled
+# - name: postgresql
+#   version: 16.x
+#   alias: analyticsdb
+#   repository: https://charts.bitnami.com/bitnami
+#   condition: analyticsdb.enabled
 - name: kong
   repository: https://charts.bitnami.com/bitnami
   version: 15.x.x
   condition: kong.enabled
 - name: minio
-  version: 14.x
+  version: 15.x
   repository: https://charts.bitnami.com/bitnami
   condition: minio.enabled
 - name: vector
@@ -41,4 +41,4 @@ maintainers:
 name: supabase
 sources:
 - https://github.com/supafull/supabase
-version: 0.0.8
+version: 0.0.9
