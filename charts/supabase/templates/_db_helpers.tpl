@@ -39,53 +39,6 @@ Return the Postgres User
 {{ default "supabase_admin" .Values.externalDatabase.user }}
 {{- end -}}
 
-{{- define "supabase.waitForDBInitContainer" -}}
-# We need to wait for the postgres database to be ready in order to start with Supabase.
-# As it is a ReplicaSet, we need that all nodes are configured in order to start with
-# the application or race conditions can occur
-- name: wait-for-db
-  image: {{ template "supabase.psql.image" . }}
-  imagePullPolicy: {{ .Values.psqlImage.pullPolicy }}
-  {{- if .Values.auth.containerSecurityContext.enabled }}
-  securityContext: {{- include "common.compatibility.renderSecurityContext" (dict "secContext" .Values.auth.containerSecurityContext "context" $) | nindent 4 }}
-  {{- end }}
-  command:
-    - bash
-    - -ec
-    - |
-      #!/bin/bash
-
-      set -o errexit
-      set -o nounset
-      set -o pipefail
-
-      . /opt/bitnami/scripts/liblog.sh
-      . /opt/bitnami/scripts/libvalidations.sh
-      . /opt/bitnami/scripts/libpostgresql.sh
-      . /opt/bitnami/scripts/postgresql-env.sh
-
-      info "Waiting for host $DB_HOST"
-      psql_is_ready() {
-          if ! PGCONNECT_TIMEOUT="5" PGPASSWORD="$DB_PASSWORD" psql -U "$DB_USER" -d "$DB_NAME" -h "$DB_HOST" -p "$DB_PORT" -c "SELECT 1"; then
-             return 1
-          fi
-          return 0
-      }
-      if ! retry_while "debug_execute psql_is_ready"; then
-          error "Database not ready"
-          exit 1
-      fi
-      info "Database is ready"
-  env:
-    - name: BITNAMI_DEBUG
-      value: {{ ternary "true" "false" (or .Values.psqlImage.debug .Values.diagnosticMode.enabled) | quote }}
-    {{ include "supabase.database.envvars" . | indent 4 }}
-  volumeMounts:
-    - name: empty-dir
-      mountPath: /tmp
-      subPath: tmp-dir
-{{- end -}}
-
 {{/*
 Retrieve key of the postgres secret
 */}}

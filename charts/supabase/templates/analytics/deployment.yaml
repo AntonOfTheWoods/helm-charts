@@ -67,7 +67,7 @@ spec:
       initContainers:
         # FIXME: this should be analyticsdb!!!
         {{- if not .Values.analytics.diagnosticMode.enabled }}
-        {{- include "supabase.waitForDBInitContainer" . | nindent 8 }}
+        {{- include "supabase.analyticsdb.database.checkdbready" . | nindent 8 }}
         {{- end }}
 
         {{- if .Values.analytics.initContainers }}

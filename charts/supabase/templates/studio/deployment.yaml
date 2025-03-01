@@ -76,7 +76,7 @@ spec:
       {{- end }}
       initContainers:
         {{- if not .Values.diagnosticMode.enabled }}
-        {{- include "supabase.waitForDBInitContainer" . | nindent 8 }}
+        {{- include "supabase.database.checkdbready" . | nindent 8 }}
         {{- end }}
         {{- if .Values.studio.initContainers }}
           {{- include "common.tplvalues.render" (dict "value" .Values.studio.initContainers "context" $) | nindent 8 }}

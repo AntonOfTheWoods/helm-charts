@@ -102,7 +102,7 @@ spec:
               mountPath: /tmp
               subPath: tmp-dir
         {{- end }}
-        {{- include "supabase.waitForDBInitContainer" . | nindent 8 }}
+        {{- include "supabase.database.checkdbready" . | nindent 8 }}
         {{- end }}
         {{- if .Values.storage.initContainers }}
           {{- include "common.tplvalues.render" (dict "value" .Values.storage.initContainers "context" $) | nindent 8 }}
