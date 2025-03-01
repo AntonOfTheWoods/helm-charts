@@ -3649,6 +3649,8 @@ volumePermissions:
   containerSecurityContext:
     seLinuxOptions: {}
     runAsUser: 0
+
+## FIXME: replace with minimal vanilla postgresql
 ## Bitnami PostgreSQL image
 ## ref: https://hub.docker.com/r/bitnami/postgres/tags/
 ## @param psqlImage.registry [default: REGISTRY_NAME] PostgreSQL client image registry
@@ -3662,7 +3664,7 @@ volumePermissions:
 psqlImage:
   registry: docker.io
   repository: bitnami/postgresql
-  tag: 17.2.0-debian-12-r2
+  tag: 17.4.0-debian-12-r2
   digest: ""
   ## Specify a imagePullPolicy
   ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
@@ -3680,6 +3682,7 @@ psqlImage:
   ## Set to true if you would like to see extra information on logs
   ##
   debug: false
+
 ## @section Other Parameters
 ##
 

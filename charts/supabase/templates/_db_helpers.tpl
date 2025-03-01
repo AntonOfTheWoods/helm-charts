@@ -1,6 +1,107 @@
 {{/* vim: set filetype=mustache: */}}
 
 {{/*
+Return the Postgres Hostname
+*/}}
+{{- define "supabase.database.host" -}}
+{{- print .Values.externalDatabase.host -}}
+{{- end -}}
+
+{{/*
+Return Postgres port
+*/}}
+{{- define "supabase.database.port" -}}
+{{- print .Values.externalDatabase.port  -}}
+{{- end -}}
+
+{{/*
+Return the Postgres Secret Name
+*/}}
+{{- define "supabase.database.secretName" -}}
+{{- if .Values.externalDatabase.existingSecret -}}
+    {{- print .Values.externalDatabase.existingSecret -}}
+{{- else -}}
+    {{- printf "%s-%s" (include "common.names.fullname" .) "externaldb" -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Return the Postgres Database Name
+*/}}
+{{- define "supabase.database.name" -}}
+{{- print .Values.externalDatabase.database -}}
+{{- end -}}
+
+{{/*
+Return the Postgres User
+*/}}
+{{- define "supabase.database.user" -}}
+{{ default "supabase_admin" .Values.externalDatabase.user }}
+{{- end -}}
+
+{{- define "supabase.waitForDBInitContainer" -}}
+# We need to wait for the postgres database to be ready in order to start with Supabase.
+# As it is a ReplicaSet, we need that all nodes are configured in order to start with
+# the application or race conditions can occur
+- name: wait-for-db
+  image: {{ template "supabase.psql.image" . }}
+  imagePullPolicy: {{ .Values.psqlImage.pullPolicy }}
+  {{- if .Values.auth.containerSecurityContext.enabled }}
+  securityContext: {{- include "common.compatibility.renderSecurityContext" (dict "secContext" .Values.auth.containerSecurityContext "context" $) | nindent 4 }}
+  {{- end }}
+  command:
+    - bash
+    - -ec
+    - |
+      #!/bin/bash
+
+      set -o errexit
+      set -o nounset
+      set -o pipefail
+
+      . /opt/bitnami/scripts/liblog.sh
+      . /opt/bitnami/scripts/libvalidations.sh
+      . /opt/bitnami/scripts/libpostgresql.sh
+      . /opt/bitnami/scripts/postgresql-env.sh
+
+      info "Waiting for host $DB_HOST"
+      psql_is_ready() {
+          if ! PGCONNECT_TIMEOUT="5" PGPASSWORD="$DB_PASSWORD" psql -U "$DB_USER" -d "$DB_NAME" -h "$DB_HOST" -p "$DB_PORT" -c "SELECT 1"; then
+             return 1
+          fi
+          return 0
+      }
+      if ! retry_while "debug_execute psql_is_ready"; then
+          error "Database not ready"
+          exit 1
+      fi
+      info "Database is ready"
+  env:
+    - name: BITNAMI_DEBUG
+      value: {{ ternary "true" "false" (or .Values.psqlImage.debug .Values.diagnosticMode.enabled) | quote }}
+    {{ include "supabase.database.envvars" . | indent 4 }}
+  volumeMounts:
+    - name: empty-dir
+      mountPath: /tmp
+      subPath: tmp-dir
+{{- end -}}
+
+{{/*
+Retrieve key of the postgres secret
+*/}}
+{{- define "supabase.database.passwordKey" -}}
+{{- if .Values.externalDatabase.existingSecret -}}
+    {{- if .Values.externalDatabase.existingSecretPasswordKey -}}
+        {{- printf "%s" .Values.externalDatabase.existingSecretPasswordKey -}}
+    {{- else -}}
+        {{- print "password" -}}
+    {{- end -}}
+{{- else -}}
+    {{- print "password" -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
 reusable supabase db env vars
 */}}
 {{- define "supabase.database.envvars" }}
@@ -19,12 +120,8 @@ reusable supabase db env vars
       key: {{ include "supabase.database.passwordKey" . | quote }}
 - name: DB_SSL
   value: {{ .Values.dbSSL | quote }}
-{{- end -}}
 
-{{/*
-reusable supabase env vars
-*/}}
-{{- define "supabase.database.pgenvvars" }}
+# vanilla postgres env vars
 - name: PGDATABASE
   value: {{ include "supabase.database.name" . | quote }}
 - name: PGUSER
@@ -38,6 +135,7 @@ reusable supabase env vars
   value: {{ include "supabase.database.host" . | quote }}
 - name: PGPORT
   value: {{ include "supabase.database.port" . | quote }}
+
 {{- end -}}
 
 {{/*
@@ -54,83 +152,46 @@ reusable db check-db-ready
     'until psql -c "select 1;";
     do echo waiting for database; sleep 2; done;']
   env:
-    {{ include "supabase.database.pgenvvars" . | indent 4 }}
+    {{ include "supabase.database.envvars" . | indent 4 }}
 {{- end -}}
 
 {{/*
-Return postgresql Analyticsdb fullname
-*/}}
-{{- define "supabase.analyticsdb.database.fullname" -}}
-{{- include "common.names.dependency.fullname" (dict "chartName" "analyticsdb" "chartValues" .Values.analyticsdb "context" $) -}}
-{{- end -}}
-
-{{/*
-Return the PostgreSQL Analyticsdb Hostname
+Return the Postgres Analyticsdb Hostname
 */}}
 {{- define "supabase.analyticsdb.database.host" -}}
-{{- if .Values.analyticsdb.enabled -}}
-    {{- if eq .Values.analyticsdb.architecture "replication" -}}
-        {{- printf "%s-%s" (include "supabase.analyticsdb.database.fullname" .) "primary" | trunc 63 | trimSuffix "-" -}}
-    {{- else -}}
-        {{- print (include "supabase.analyticsdb.database.fullname" .) -}}
-    {{- end -}}
-{{- else -}}
-    {{- print .Values.externalDatabaseAnalyticsdb.host -}}
-{{- end -}}
+{{- print .Values.externalDatabaseAnalyticsdb.host -}}
 {{- end -}}
 
 {{/*
-Return postgresql Analyticsdb port
+Return postgres Analyticsdb port
 */}}
 {{- define "supabase.analyticsdb.database.port" -}}
-{{- if .Values.analyticsdb.enabled -}}
-    {{- print .Values.analyticsdb.service.ports.postgresql -}}
-{{- else -}}
-    {{- print .Values.externalDatabaseAnalyticsdb.port  -}}
-{{- end -}}
+{{- print .Values.externalDatabaseAnalyticsdb.port  -}}
 {{- end -}}
 
 {{/*
-Return the PostgreSQL Analyticsdb Secret Name
+Return the Postgres Analyticsdb Secret Name
 */}}
 {{- define "supabase.analyticsdb.database.secretName" -}}
-{{- if .Values.analyticsdb.enabled -}}
-    {{- if .Values.analyticsdb.auth.existingSecret -}}
-    {{- print .Values.analyticsdb.auth.existingSecret -}}
-    {{- else -}}
-    {{- print (include "supabase.analyticsdb.database.fullname" .) -}}
-    {{- end -}}
-{{- else if .Values.externalDatabaseAnalyticsdb.existingSecret -}}
+{{- if .Values.externalDatabaseAnalyticsdb.existingSecret -}}
     {{- print .Values.externalDatabaseAnalyticsdb.existingSecret -}}
 {{- else -}}
-    {{- printf "%s-%s" (include "common.names.fullname" .) "externaldb-analyticsdb" -}}
+    {{- printf "%s-%s" (include "common.names.fullname" .) "analyticsdb-secret" -}}
 {{- end -}}
 {{- end -}}
 
 {{/*
-Return the PostgreSQL Analyticsdb Database Name
+Return the Postgres Analyticsdb Database Name
 */}}
 {{- define "supabase.analyticsdb.database.name" -}}
-{{- if .Values.analyticsdb.enabled -}}
-    {{/*
-        In the supabase-postgres container the database is hardcoded to postgres following
-        what's done in upstream
-    */}}
-    {{- print "postgres" -}}
-{{- else -}}
-    {{- print .Values.externalDatabaseAnalyticsdb.database -}}
-{{- end -}}
+{{- print .Values.externalDatabaseAnalyticsdb.database -}}
 {{- end -}}
 
 {{/*
-Return the Analyticsdb PostgreSQL User
+Return the Analyticsdb Postgres User
 */}}
 {{- define "supabase.analyticsdb.database.user" -}}
-{{- if .Values.analyticsdb.enabled }}
-    {{- print "supabase_admin" -}}
-{{- else -}}
-    {{- print .Values.externalDatabaseAnalyticsdb.user -}}
-{{- end -}}
+{{- print .Values.externalDatabaseAnalyticsdb.user -}}
 {{- end -}}
 
 {{/*
@@ -170,39 +231,16 @@ reusable db check-db-ready
 {{- end -}}
 
 {{/*
-Retrieve key of the Analyticsdb postgresql secret
+Retrieve key of the Analyticsdb postgres secret
 */}}
 {{- define "supabase.analyticsdb.database.passwordKey" -}}
-{{- if .Values.analyticsdb.enabled -}}
-    {{- print "postgres-password" -}}
-{{- else -}}
-    {{- if .Values.externalDatabaseAnalyticsdb.existingSecret -}}
-        {{- if .Values.externalDatabaseAnalyticsdb.existingSecretPasswordKey -}}
-            {{- printf "%s" .Values.externalDatabaseAnalyticsdb.existingSecretPasswordKey -}}
-        {{- else -}}
-            {{- print "db-password" -}}
-        {{- end -}}
+{{- if .Values.externalDatabaseAnalyticsdb.existingSecret -}}
+    {{- if .Values.externalDatabaseAnalyticsdb.existingSecretPasswordKey -}}
+        {{- printf "%s" .Values.externalDatabaseAnalyticsdb.existingSecretPasswordKey -}}
     {{- else -}}
-        {{- print "db-password" -}}
+        {{- print "password" -}}
     {{- end -}}
+{{- else -}}
+    {{- print "password" -}}
 {{- end -}}
-{{- end -}}
-
-{{/*
-Return supabase kong connection details
-*/}}
-{{- define "supabase.api" -}}
-- name: SUPABASE_URL
-  value: "http://{{ include "supabase.kong.fullname" . }}.{{ include "common.names.namespace" . }}.svc.{{ .Values.clusterDomain }}:{{ .Values.kong.service.ports.proxyHttp }}"
-- name: SUPABASE_ANON_KEY
-  valueFrom:
-    secretKeyRef:
-      name: {{ include "supabase.jwt.secretName" . }}
-      key: {{ include "supabase.jwt.anonSecretKey" . }}
-- name: SUPABASE_SERVICE_KEY
-  valueFrom:
-    secretKeyRef:
-      name: {{ include "supabase.jwt.secretName" . }}
-      key: {{ include "supabase.jwt.serviceSecretKey" . }}
-
 {{- end -}}
