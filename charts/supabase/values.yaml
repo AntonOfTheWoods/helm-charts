@@ -380,7 +380,6 @@ jwt:
     ##
     podAnnotations: {}
 
-
 analytics:
   enabled: true
   existingSecret: ""
@@ -515,19 +514,23 @@ analytics:
     ingressNSMatchLabels: {}
     ingressNSPodMatchLabels: {}
 
+## External analyticsdb Postgres configuration
+## @param analyticsdb.host Database host
+## @param analyticsdb.port Database port number
+## @param analyticsdb.database PostgreSQL database name
+##
 analyticsdb:
   enabled: true
+  host: "externaldb"
+  port: 1111
+  database: postgresisgreat
+  ## @param analyticsdb.auth.user Non-root username for PostgreSQL
+  ## @param analyticsdb.auth.existingSecret Name of an existing secret resource containing the database credentials
+  ## @param analyticsdb.auth.existingSecretPasswordKey Name of an existing secret key containing the database credentials
   auth:
+    user: supabase_admin_analytics
     existingSecret: externaldb-analyticsdb
-  primary:
-    extendedConfiguration: |-
-      wal_level = logical
-      huge_pages = off
-
-  # these are not from the bitnami postgresql chart, but additions copied from the supabase chart for the pg dep
-  service:
-    ports:
-      postgresql: 5432
+    existingSecretPasswordKey: ""
 
 vector:
   # FIXME: check this still works... docker-compose is still using `image: timberio/vector:0.28.1-alpine`
@@ -557,26 +560,6 @@ vector:
         secretKeyRef:
           name: supabase-logflare
           key: api-key
-
-
-## External PostgreSQL configuration
-## All of these values are only used when analyticsdb.enabled is set to false
-## @param externalDatabaseAnalyticsdb.host Database host
-## @param externalDatabaseAnalyticsdb.port Database port number
-## @param externalDatabaseAnalyticsdb.user Non-root username for PostgreSQL
-## @param externalDatabaseAnalyticsdb.password Password for the non-root username for PostgreSQL
-## @param externalDatabaseAnalyticsdb.database PostgreSQL database name
-## @param externalDatabaseAnalyticsdb.existingSecret Name of an existing secret resource containing the database credentials
-## @param externalDatabaseAnalyticsdb.existingSecretPasswordKey Name of an existing secret key containing the database credentials
-##
-externalDatabaseAnalyticsdb:
-  host: "externaldb"
-  port: 1111
-  user: supabase_admin_analytics
-  database: postgresisgreat
-  password: "badpassword"
-  existingSecret: ""
-  existingSecretPasswordKey: ""
 
 functions:
   enabled: true

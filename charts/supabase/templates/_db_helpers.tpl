@@ -159,22 +159,22 @@ reusable db check-db-ready
 Return the Postgres Analyticsdb Hostname
 */}}
 {{- define "supabase.analyticsdb.database.host" -}}
-{{- print .Values.externalDatabaseAnalyticsdb.host -}}
+{{- print .Values.analyticsdb.host -}}
 {{- end -}}
 
 {{/*
 Return postgres Analyticsdb port
 */}}
 {{- define "supabase.analyticsdb.database.port" -}}
-{{- print .Values.externalDatabaseAnalyticsdb.port  -}}
+{{- print .Values.analyticsdb.port  -}}
 {{- end -}}
 
 {{/*
 Return the Postgres Analyticsdb Secret Name
 */}}
 {{- define "supabase.analyticsdb.database.secretName" -}}
-{{- if .Values.externalDatabaseAnalyticsdb.existingSecret -}}
-    {{- print .Values.externalDatabaseAnalyticsdb.existingSecret -}}
+{{- if .Values.analyticsdb.auth.existingSecret -}}
+    {{- print .Values.analyticsdb.auth.existingSecret -}}
 {{- else -}}
     {{- printf "%s-%s" (include "common.names.fullname" .) "analyticsdb-secret" -}}
 {{- end -}}
@@ -184,14 +184,14 @@ Return the Postgres Analyticsdb Secret Name
 Return the Postgres Analyticsdb Database Name
 */}}
 {{- define "supabase.analyticsdb.database.name" -}}
-{{- print .Values.externalDatabaseAnalyticsdb.database -}}
+{{- print .Values.analyticsdb.database -}}
 {{- end -}}
 
 {{/*
 Return the Analyticsdb Postgres User
 */}}
 {{- define "supabase.analyticsdb.database.user" -}}
-{{- print .Values.externalDatabaseAnalyticsdb.user -}}
+{{- print .Values.analyticsdb.auth.user -}}
 {{- end -}}
 
 {{/*
@@ -234,9 +234,9 @@ reusable db check-db-ready
 Retrieve key of the Analyticsdb postgres secret
 */}}
 {{- define "supabase.analyticsdb.database.passwordKey" -}}
-{{- if .Values.externalDatabaseAnalyticsdb.existingSecret -}}
-    {{- if .Values.externalDatabaseAnalyticsdb.existingSecretPasswordKey -}}
-        {{- printf "%s" .Values.externalDatabaseAnalyticsdb.existingSecretPasswordKey -}}
+{{- if .Values.analyticsdb.auth.existingSecret -}}
+    {{- if .Values.analyticsdb.auth.existingSecretPasswordKey -}}
+        {{- printf "%s" .Values.analyticsdb.auth.existingSecretPasswordKey -}}
     {{- else -}}
         {{- print "password" -}}
     {{- end -}}
