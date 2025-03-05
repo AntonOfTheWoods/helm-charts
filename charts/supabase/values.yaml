@@ -34,6 +34,10 @@ global:
     ## @param global.jwt.existingSecretServiceKey The key in the existing secret containing the JWT service key
     ##
     existingSecretServiceKey: "service-key"
+    ## @param global.jwt.existingSecretExpiry The expiry in the existing secret containing the JWT service key
+    ##
+    existingSecretExpiry: "expiry"
+
   ## Compatibility adaptations for Kubernetes platforms
   ##
   compatibility:
@@ -96,6 +100,10 @@ jwt:
   ## @param jwt.serviceKey JWT string for service users
   ##
   serviceKey: ""
+  ## @param jwt.expiry for JWT service users
+  ##
+  expiry: ""
+
   autoGenerate:
     ## @param jwt.autoGenerate.forceRun Force the run of the JWT generation job
     ##
@@ -112,7 +120,7 @@ jwt:
     image:
       registry: docker.io
       repository: bitnami/jwt-cli
-      tag: 6.1.1-debian-12-r5
+      tag: 6.2.0-debian-12-r6
       digest: ""
       ## Specify a imagePullPolicy
       ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
@@ -397,8 +405,7 @@ analytics:
   image:
     registry: docker.io
     repository: supabase/logflare
-    # tag: 1.9.5
-    tag: "1.4.0"  # WARNING - later versions are NOT compatible with the current supabase studio version
+    tag: 1.12.0
     pullPolicy: IfNotPresent
     digest: ""
     pullSecrets: []
@@ -901,10 +908,8 @@ auth:
   ## @param auth.extraConfigExistingConfigmap The name of an existing ConfigMap with extra configuration
   ##
   extraConfigExistingConfigmap: ""
-  ## Bitnami Gotrue image
-  ## ref: https://hub.docker.com/r/bitnami/gotrue/tags/
   ## @param auth.image.registry [default: REGISTRY_NAME] Gotrue image registry
-  ## @param auth.image.repository [default: REPOSITORY_NAME/gotrue] Gotrue image repository
+  ## @param auth.image.repository [default: supabase/auth] Gotrue image repository
   ## @skip auth.image.tag Gotrue image tag (immutable tags are recommended)
   ## @param auth.image.digest Gotrue image digest in the way sha256:aa.... Please note this parameter, if set, will override the tag image tag (immutable tags are recommended)
   ## @param auth.image.pullPolicy Gotrue image pull policy
@@ -912,11 +917,8 @@ auth:
   ##
   image:
     registry: docker.io
-    # FIXME: maybe this will work???
     repository: supabase/auth
-    tag: v2.164.0
-    # repository: bitnami/gotrue
-    # tag: 2.164.0-debian-12-r0
+    tag: v2.169.0
     digest: ""
     ## Specify a imagePullPolicy
     ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
@@ -1327,11 +1329,8 @@ meta:
   ##
   image:
     registry: docker.io
-    # FIXME: maybe will work???
-    # repository: supabase/postgres-meta
-    # tag: v0.84.3
-    repository: bitnami/supabase-postgres-meta
-    tag: 0.84.0-debian-12-r0
+    repository: supabase/postgres-meta
+    tag: v0.86.1
 
     digest: ""
     ## Specify a imagePullPolicy
@@ -1765,10 +1764,8 @@ realtime:
   ## @param realtime.extraConfigExistingConfigmap The name of an existing ConfigMap with extra configuration
   ##
   extraConfigExistingConfigmap: ""
-  ## Bitnami Realtime image
-  ## ref: https://hub.docker.com/r/bitnami/supabase-realtime/tags/
   ## @param realtime.image.registry [default: REGISTRY_NAME] Realtime image registry
-  ## @param realtime.image.repository [default: REPOSITORY_NAME/supabase-realtime] Realtime image repository
+  ## @param realtime.image.repository [default: supabase/realtime] Realtime image repository
   ## @skip realtime.image.tag Realtime image tag (immutable tags are recommended)
   ## @param realtime.image.digest Realtime image digest in the way sha256:aa.... Please note this parameter, if set, will override the tag image tag (immutable tags are recommended)
   ## @param realtime.image.pullPolicy Realtime image pull policy
@@ -1776,12 +1773,8 @@ realtime:
   ##
   image:
     registry: docker.io
-    # FIXME: maybe this will work???
-    # repository: supabase/realtime
-    # tag: v2.33.55
-    # BUT - the docker-compose version still has `image: supabase/realtime:v2.30.34`
-    repository: bitnami/supabase-realtime
-    tag: 2.30.32-debian-12-r0
+    repository: supabase/realtime
+    tag: v2.34.39
     digest: ""
     ## Specify a imagePullPolicy
     ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
@@ -2164,9 +2157,7 @@ rest:
     PGRST_DB_USE_LEGACY_GUCS: "false"
     PGRST_SERVER_PORT: {{ .Values.rest.containerPorts.http | quote }}
     PGRST_DB_SCHEMAS: "public,storage"
-
-  ## FIXME: make sure this works!
-  # command: ["postgrest"]
+    PGRST_DB_AGGREGATES_ENABLED: "true"
 
   ## @param rest.extraConfig Extra configuration for the Supabase rest service
   ##
@@ -2177,10 +2168,8 @@ rest:
   ## @param rest.extraConfigExistingConfigmap The name of an existing ConfigMap with extra configuration
   ##
   extraConfigExistingConfigmap: ""
-  ## Bitnami PostgREST image
-  ## ref: https://hub.docker.com/r/bitnami/postgrest/tags/
   ## @param rest.image.registry [default: REGISTRY_NAME] PostgREST image registry
-  ## @param rest.image.repository [default: REPOSITORY_NAME/postgrest] PostgREST image repository
+  ## @param rest.image.repository [default: postgrest/postgrest] PostgREST image repository
   ## @skip rest.image.tag PostgREST image tag (immutable tags are recommended)
   ## @param rest.image.digest PostgREST image digest in the way sha256:aa.... Please note this parameter, if set, will override the tag image tag (immutable tags are recommended)
   ## @param rest.image.pullPolicy PostgREST image pull policy
@@ -2188,12 +2177,8 @@ rest:
   ##
   image:
     registry: docker.io
-
-    # FIXME: maybe this will work???
-    # repository: postgrest/postgrest
-    # tag: v12.2.8
-    repository: bitnami/postgrest
-    tag: 11.2.2-debian-12-r38
+    repository: postgrest/postgrest
+    tag: v12.2.8
 
     digest: ""
     ## Specify a imagePullPolicy
@@ -2612,10 +2597,8 @@ storage:
   ## @param storage.extraConfigExistingConfigmap The name of an existing ConfigMap with extra configuration
   ##
   extraConfigExistingConfigmap: ""
-  ## Bitnami Storage image
-  ## ref: https://hub.docker.com/r/bitnami/supabase-storage/tags/
   ## @param storage.image.registry [default: REGISTRY_NAME] Storage image registry
-  ## @param storage.image.repository [default: REPOSITORY_NAME/supabase-storage] Storage image repository
+  ## @param storage.image.repository [default: supabase/storage-api] Storage image repository
   ## @skip storage.image.tag Storage image tag (immutable tags are recommended)
   ## @param storage.image.digest Storage image digest in the way sha256:aa.... Please note this parameter, if set, will override the tag image tag (immutable tags are recommended)
   ## @param storage.image.pullPolicy Storage image pull policy
@@ -2623,13 +2606,9 @@ storage:
   ##
   image:
     registry: docker.io
-    # FIXME: maybe `image: supabase/storage-api:v1.11.13` will work???
     repository: supabase/storage-api
-    tag: v1.11.13
+    tag: v1.19.1
 
-    # broken!!!
-    # repository: bitnami/supabase-storage
-    # tag: 1.10.3-debian-12-r0
     digest: ""
     ## Specify a imagePullPolicy
     ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
@@ -3106,7 +3085,7 @@ studio:
   image:
     registry: docker.io
     repository: supabase/studio
-    tag: 20241106-f29003e
+    tag: 20250224-d10db0f
     digest: ""
     ## Specify a imagePullPolicy
     ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
