@@ -114,6 +114,15 @@ spec:
                 secretKeyRef:
                   name: {{ include "supabase.jwt.secretName" . }}
                   key: {{ include "supabase.jwt.serviceSecretKey" . }}
+
+            {{- if .Values.analytics.enabled }}
+            - name: LOGFLARE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.analytics.secretName" . }}
+                  key: {{ include "supabase.analytics.apiSecretKey" . }}
+            {{- end }}
+
             {{- if .Values.studio.extraEnvVars }}
             {{- include "common.tplvalues.render" (dict "value" .Values.studio.extraEnvVars "context" $) | nindent 12 }}
             {{- end }}

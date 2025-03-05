@@ -128,14 +128,17 @@ spec:
                   name: {{ include "supabase.realtime.secretName" . | quote }}
                   key: {{ include "supabase.realtime.dbEncKeyName" . | quote }}
 
-            # sigh, these are in the documentation (as of this commit) but aren't
-            # actually used. You MUST have IPv6. Sigh. Sigh...
+            - name: RUN_JANITOR
+              value: "true"
+            - name: RLIMIT_NOFILE
+              value: "10000"
+
             - name: DB_IP_VERSION
-              value: "IPv4"
+              value: "ipv4"
             - name: REPLICATION_MODE
-              value: "IPv4"
+              value: "ipv4"
             - name: REALTIME_IP_VERSION
-              value: "IPv4"
+              value: "ipv4"
             - name: APP_NAME
               value: realtime
             - name: SEED_SELF_HOST

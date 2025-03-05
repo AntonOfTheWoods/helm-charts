@@ -106,6 +106,7 @@ spec:
                 secretKeyRef:
                   name: {{ include "supabase.database.secretName" . }}
                   key: {{ include "supabase.database.passwordKey" . | quote }}
+
             {{- if .Values.meta.extraEnvVars }}
             {{- include "common.tplvalues.render" (dict "value" .Values.meta.extraEnvVars "context" $) | nindent 12 }}
             {{- end }}

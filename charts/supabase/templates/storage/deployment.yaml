@@ -173,8 +173,6 @@ spec:
             # ENABLE_IMAGE_TRANSFORMATION: "true"
             # IMGPROXY_URL: http://imgproxy:5001
 
-
-
           envFrom:
             - configMapRef:
                 name: {{ include "supabase.storage.defaultConfigmapName" . }}

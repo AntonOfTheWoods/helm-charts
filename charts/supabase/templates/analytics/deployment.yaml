@@ -103,6 +103,9 @@ spec:
             - name: LOGFLARE_LOG_LEVEL
               value: {{ .Values.analytics.logLevel | default "warn" | quote }}
 
+            - name: LOGFLARE_MIN_CLUSTER_SIZE
+              value: "1"
+
             - name: DB_USER
               value: {{ include "supabase.analyticsdb.database.user" . | quote }}
             - name: DB_HOST
@@ -119,7 +122,7 @@ spec:
 
             # THESE ARE REQUIRED IN ADDITION TO POSTGRES_BACKEND_URL below!!!
             - name: DB_SCHEMA
-              value: {{ .Values.analytics.application.dbSchema | default "public" | quote }}
+              value: {{ .Values.analytics.application.dbSchema | default "_analytics" | quote }}
             - name: DB_DATABASE
               value: $(DB_NAME)
             - name: DB_HOSTNAME

@@ -2163,6 +2163,11 @@ rest:
     PGRST_DB_ANON_ROLE: "anon"
     PGRST_DB_USE_LEGACY_GUCS: "false"
     PGRST_SERVER_PORT: {{ .Values.rest.containerPorts.http | quote }}
+    PGRST_DB_SCHEMAS: "public,storage"
+
+  ## FIXME: make sure this works!
+  # command: ["postgrest"]
+
   ## @param rest.extraConfig Extra configuration for the Supabase rest service
   ##
   extraConfig: {}
@@ -2183,11 +2188,13 @@ rest:
   ##
   image:
     registry: docker.io
+
     # FIXME: maybe this will work???
     # repository: postgrest/postgrest
-    # tag: v12.2.0
+    # tag: v12.2.8
     repository: bitnami/postgrest
     tag: 11.2.2-debian-12-r38
+
     digest: ""
     ## Specify a imagePullPolicy
     ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
@@ -3079,11 +3086,6 @@ studio:
     #   value: "default"
     - name: NEXT_ANALYTICS_BACKEND_PROVIDER
       value: postgres  # postgres, bigquery
-    - name: LOGFLARE_API_KEY
-      valueFrom:
-        secretKeyRef:
-          name: supaplus-logflare
-          key: api-key
 
   ## @param studio.extraConfig Supabase studio extra configuration
   ##
@@ -3094,10 +3096,8 @@ studio:
   ## @param studio.extraConfigExistingConfigmap The name of an existing ConfigMap with extra configuration
   ##
   extraConfigExistingConfigmap: ""
-  ## Bitnami Studio image
-  ## ref: https://hub.docker.com/r/bitnami/supabase-studio/tags/
   ## @param studio.image.registry [default: REGISTRY_NAME] Studio image registry
-  ## @param studio.image.repository [default: REPOSITORY_NAME/supabase-studio] Studio image repository
+  ## @param studio.image.repository [default: REPOSITORY_NAME/studio] Studio image repository
   ## @skip studio.image.tag Studio image tag (immutable tags are recommended)
   ## @param studio.image.digest Studio image digest in the way sha256:aa.... Please note this parameter, if set, will override the tag image tag (immutable tags are recommended)
   ## @param studio.image.pullPolicy Studio image pull policy
@@ -3105,9 +3105,8 @@ studio:
   ##
   image:
     registry: docker.io
-    repository: bitnami/supabase-studio
-    # 20241106-f29003e
-    tag: 1.24.4-debian-12-r0
+    repository: supabase/studio
+    tag: 20241106-f29003e
     digest: ""
     ## Specify a imagePullPolicy
     ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
