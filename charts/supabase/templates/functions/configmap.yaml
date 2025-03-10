@@ -45,17 +45,6 @@ data:
     const FUNCTIONS_CONFIG_STRING = Deno.env.get("SUPABASE_INTERNAL_FUNCTIONS_CONFIG")!;
     const FUNCTIONS_HOME = Deno.env.get("SUPABASE_INTERNAL_FUNCTIONS_HOME") || "/home/deno/functions";
 
-    // Ref: https://supabase.com/docs/guides/functions/limits
-    const memoryLimitMb = parseInt(Deno.env.get("SUPABASE_INTERNAL_MEMORY_LIMIT_MB") || "256");
-    const workerTimeoutMs = parseInt(Deno.env.get("SUPABASE_INTERNAL_WALLCLOCK_LIMIT_SEC") || "400") * 1000;
-    const forceCreate = Deno.env.get("SUPABASE_INTERNAL_FORCE_CREATE") === "true";
-    const noModuleCache = Deno.env.get("SUPABASE_INTERNAL_NO_MODULE_CACHE") === "true";
-    const cpuTimeSoftLimitMs = parseInt(Deno.env.get("SUPABASE_INTERNAL_CPU_TIME_SOFT_LIMIT_MS") || "1000");
-    const cpuTimeHardLimitMs = parseInt(Deno.env.get("SUPABASE_INTERNAL_CPU_TIME_HARD_LIMIT_MS") || "2000");
-
-    // FIXME: still useful???
-    // const netAccessDisable = Deno.env.get("SUPABASE_INTERNAL_NET_ACCESS_DISABLED") === "true";
-
     const DENO_SB_ERROR_MAP = new Map([
       [Deno.errors.InvalidWorkerCreation, SB_SPECIFIC_ERROR_CODE.BootError],
       [Deno.errors.InvalidWorkerResponse, SB_SPECIFIC_ERROR_CODE.InvalidWorkerResponse],
@@ -66,6 +55,7 @@ data:
       entrypointPath: string;
       importMapPath: string;
       ignoreJWT: boolean;
+      staticFiles: string;
     }
 
     function getResponse(payload: any, status: number, customHeaders = {}) {
@@ -90,9 +80,9 @@ data:
     const functionsConfig: Record<string, FunctionConfig> = (() => {
       try {
         const functionsConfig = JSON.parse(FUNCTIONS_CONFIG_STRING);
+
         if (DEBUG) {
-          console.log("Functions config:", FUNCTIONS_CONFIG_STRING);
-          console.log(functionsConfig);
+          console.log("Functions config:", JSON.stringify(functionsConfig, null, 2));
         }
 
         return functionsConfig;
@@ -102,10 +92,7 @@ data:
     })();
 
     function getAuthToken(req: Request) {
-      if (DEBUG) {
-        console.log("Request headers:", JSON.stringify([...req.headers.entries()]));
-      }
-      const authHeader = req.headers.get("authorization") || req.headers.get("Authorization");
+      const authHeader = req.headers.get("authorization");
       if (!authHeader) {
         throw new Error("Missing authorization header");
       }
@@ -149,12 +136,11 @@ data:
 
         // if (!functionName || !(functionName in functionsConfig)) {
         if (!functionName) {
-          return getResponse("Function name not found", STATUS_CODE.NotFound);
+          return getResponse("Function not found", STATUS_CODE.NotFound);
         }
 
         if (req.method !== "OPTIONS" && !functionsConfig[functionName]?.ignoreJWT) {
           try {
-            if (DEBUG) console.log("Verifying JWT for function", functionName);
             const token = getAuthToken(req);
             const isValidJWT = await verifyJWT(token);
 
@@ -167,8 +153,9 @@ data:
           }
         }
         // const importMapPath = functionsConfig[functionName].importMapPath || `${functionName}/deno.json`;
+
         const importMapPath = functionsConfig[functionName]?.importMapPath
-          ? posix.join(FUNCTIONS_HOME, functionsConfig[functionName]?.importMapPath)
+          ? posix.join(FUNCTIONS_HOME, functionsConfig[functionName].importMapPath)
           : undefined;
         const entrypointPath = functionsConfig[functionName]?.entrypointPath || `${functionName}/index.ts`;
         const servicePath = posix.dirname(entrypointPath);
@@ -181,6 +168,13 @@ data:
 
         const customModuleRoot = ""; // empty string to allow any local path
 
+        const memoryLimitMb = parseInt(Deno.env.get("SUPABASE_INTERNAL_MEMORY_LIMIT_MB") || "256");
+        const workerTimeoutMs = parseInt(Deno.env.get("SUPABASE_INTERNAL_WALLCLOCK_LIMIT_SEC") || "400") * 1000;
+        const forceCreate = Deno.env.get("SUPABASE_INTERNAL_FORCE_CREATE") === "true";
+        const noModuleCache = Deno.env.get("SUPABASE_INTERNAL_NO_MODULE_CACHE") === "true";
+        const cpuTimeSoftLimitMs = parseInt(Deno.env.get("SUPABASE_INTERNAL_CPU_TIME_SOFT_LIMIT_MS") || "1000");
+        const cpuTimeHardLimitMs = parseInt(Deno.env.get("SUPABASE_INTERNAL_CPU_TIME_HARD_LIMIT_MS") || "2000");
+
         // NOTE(Nyannyacha): Decorator type has been set to tc39 by Lakshan's request,
         // but in my opinion, we should probably expose this to customers at some
         // point, as their migration process will not be easy.
@@ -188,6 +182,9 @@ data:
 
         const absEntrypoint = posix.join(FUNCTIONS_HOME, entrypointPath);
         const maybeEntrypoint = posix.toFileUrl(absEntrypoint).href;
+
+        const staticPatterns = functionsConfig[functionName].staticFiles;
+
         try {
           const worker = await EdgeRuntime.userWorkers.create({
             servicePath,
@@ -205,6 +202,7 @@ data:
             context: {
               useReadSyncFileAPI: true,
             },
+            staticPatterns,
           });
 
           return await worker.fetch(req);
@@ -235,7 +233,7 @@ data:
       },
 
       onListen: () => {
-        console.log(`Serving functions on SUPABASE_URL/functions/v1/<function-name> Using ${Deno.version.deno}`);
+        console.log(`Serving functions on /functions/v1/<function-name>\nUsing ${Deno.version.deno}`);
       },
 
       onError: (e) => {
