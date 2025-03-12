@@ -1,6 +1,13 @@
 {{/* vim: set filetype=mustache: */}}
 
 {{/*
+Return the proper Supabase image name
+*/}}
+{{- define "supabase.psql.image" -}}
+{{ include "common.images.image" (dict "imageRoot" .Values.psqlImage "global" .Values.global) }}
+{{- end -}}
+
+{{/*
 Return the Postgres Hostname
 */}}
 {{- define "supabase.database.host" -}}

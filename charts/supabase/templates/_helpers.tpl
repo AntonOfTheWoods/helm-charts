@@ -365,13 +365,6 @@ JWT credential service secret key
 {{- end -}}
 
 {{/*
-Return the proper Supabase image name
-*/}}
-{{- define "supabase.psql.image" -}}
-{{ include "common.images.image" (dict "imageRoot" .Values.psqlImage "global" .Values.global) }}
-{{- end -}}
-
-{{/*
 Return the proper image name (for the init container volume-permissions image)
 */}}
 {{- define "supabase.volumePermissions.image" -}}
