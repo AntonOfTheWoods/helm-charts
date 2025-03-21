@@ -405,7 +405,7 @@ analytics:
   image:
     registry: docker.io
     repository: supabase/logflare
-    tag: 1.12.0
+    tag: 1.12.5
     pullPolicy: IfNotPresent
     digest: ""
     pullSecrets: []
@@ -918,7 +918,7 @@ auth:
   image:
     registry: docker.io
     repository: supabase/auth
-    tag: v2.169.0
+    tag: v2.170.0
     digest: ""
     ## Specify a imagePullPolicy
     ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
@@ -1772,7 +1772,7 @@ realtime:
   image:
     registry: docker.io
     repository: supabase/realtime
-    tag: v2.34.39
+    tag: v2.34.40
     digest: ""
     ## Specify a imagePullPolicy
     ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
@@ -2605,7 +2605,7 @@ storage:
   image:
     registry: docker.io
     repository: supabase/storage-api
-    tag: v1.19.1
+    tag: v1.19.3
 
     digest: ""
     ## Specify a imagePullPolicy
