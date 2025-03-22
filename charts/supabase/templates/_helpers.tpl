@@ -375,7 +375,7 @@ Return the proper image name (for the init container volume-permissions image)
 Return the proper Docker Image Registry Secret Names
 */}}
 {{- define "supabase.imagePullSecrets" -}}
-{{- include "common.images.pullSecrets" (dict "images" (list .Values.auth.image .Values.meta.image .Values.realtime.image .Values.rest.image .Values.storage.image .Values.studio.image .Values.volumePermissions.image) "global" .Values.global) -}}
+{{- include "common.images.pullSecrets" (dict "images" (list .Values.analytics.image .Values.auth.image .Values.functions.image .Values.imgproxy.image .Values.meta.image .Values.realtime.image .Values.rest.image .Values.storage.image .Values.studio.image .Values.volumePermissions.image) "global" .Values.global) -}}
 {{- end -}}
 
 {{/*

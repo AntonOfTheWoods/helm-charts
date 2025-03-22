@@ -539,329 +539,6 @@ analyticsdb:
     existingSecret: externaldb-analyticsdb
     existingSecretPasswordKey: ""
 
-vector:
-  # FIXME: check this still works... docker-compose is still using `image: timberio/vector:0.28.1-alpine`
-  image:
-    # tag: 0.38.0-debian
-    tag: 0.42.0-debian
-  # command: [ "/bin/bash", "-c", "--" ]
-  # args: [ "while true; do sleep 10; done;" ]
-
-  dataDir: "/vector-data-dir"
-  role: "Agent"
-  enabled: true
-  existingConfigMaps:
-    - 'supabase-vectoragent-config'
-  containerPorts:
-    - name: prom-exporter
-      containerPort: 9090
-      protocol: TCP
-  service:
-    ports:
-      - protocol: TCP
-        port: 80
-        targetPort: 9090
-  env:
-    - name: LOGFLARE_API_KEY
-      valueFrom:
-        secretKeyRef:
-          name: supabase-logflare
-          key: api-key
-
-functions:
-  enabled: true
-  diagnosticMode:
-    enabled: false
-    command:
-      - sleep
-    args:
-      - infinity
-  userFunctionsPath: /bitnami/supabase-functions
-  entrypointPath: /home/deno/functions/main
-
-  workerMemoryLimitMb: 150
-  workerTimeoutSec: 400
-  workerCPUTimeSoftLimitMs: 1000
-  workerCPUTimeHardLimitMs: 2000
-  workerNoModuleCache: false
-  workerForceCreate: false
-  workerNetAccessDisabled: false
-  # workerImportMapPath:  # no default value
-
-  replicaCount: 1
-  extraConfig: {}
-  existingConfigmap: ""
-  extraConfigExistingConfigmap: ""
-  image:
-    registry: docker.io
-    repository: supabase/edge-runtime
-    # tag: v1.46.0
-    tag: v1.63.0
-    digest: ""
-    pullPolicy: IfNotPresent
-    pullSecrets: []
-  containerPorts:
-    http: 80
-  livenessProbe:
-    enabled: true
-    initialDelaySeconds: 30
-    periodSeconds: 10
-    timeoutSeconds: 5
-    failureThreshold: 6
-    successThreshold: 1
-  readinessProbe:
-    enabled: true
-    initialDelaySeconds: 5
-    periodSeconds: 10
-    timeoutSeconds: 5
-    failureThreshold: 6
-    successThreshold: 1
-  startupProbe:
-    enabled: false
-    initialDelaySeconds: 5
-    periodSeconds: 10
-    timeoutSeconds: 5
-    failureThreshold: 6
-    successThreshold: 1
-  customLivenessProbe: {}
-  customReadinessProbe: {}
-  customStartupProbe: {}
-  resourcesPreset: "micro"
-  resources: {}
-  podSecurityContext:
-    enabled: false  # FIXME:
-    fsGroupChangePolicy: Always
-    sysctls: []
-    supplementalGroups: []
-    fsGroup: 1001
-  containerSecurityContext:
-    enabled: false  # FIXME:
-    seLinuxOptions: {}
-    runAsUser: 1001
-    runAsGroup: 1001
-    runAsNonRoot: true
-    privileged: false
-    readOnlyRootFilesystem: true
-    allowPrivilegeEscalation: false
-    capabilities:
-      drop: ["ALL"]
-    seccompProfile:
-      type: "RuntimeDefault"
-  command: []
-  args: []
-  automountServiceAccountToken: false
-  hostAliases: []
-  podLabels: {}
-  podAnnotations: {}
-  podAffinityPreset: ""
-  podAntiAffinityPreset: soft
-  nodeAffinityPreset:
-    type: ""
-    key: ""
-    values: []
-  affinity: {}
-  nodeSelector: {}
-  tolerations: []
-  updateStrategy:
-    type: RollingUpdate
-  priorityClassName: ""
-  topologySpreadConstraints: []
-  schedulerName: ""
-  terminationGracePeriodSeconds: ""
-  lifecycleHooks: {}
-  extraEnvVars: []
-  extraEnvVarsCM: ""
-  extraEnvVarsSecret: ""
-  extraVolumes: []
-  extraVolumeMounts: []
-  sidecars: []
-  initContainers: []
-  service:
-    type: ClusterIP
-    ports:
-      http: 80
-    nodePorts:
-      http: ""
-    clusterIP: ""
-    loadBalancerIP: ""
-    loadBalancerSourceRanges: []
-    externalTrafficPolicy: Cluster
-    annotations: {}
-    extraPorts: []
-    sessionAffinity: None
-    sessionAffinityConfig: {}
-  networkPolicy:
-    enabled: true
-    allowExternal: true
-    allowExternalEgress: true
-    extraIngress: []
-    extraEgress: []
-    ingressNSMatchLabels: {}
-    ingressNSPodMatchLabels: {}
-  persistence:
-    enabled: true
-    mountPath: /bitnami/supabase-functions
-    subPath: ""
-    storageClass: ""
-    annotations: {}
-    accessModes:
-      - ReadWriteOnce
-    size: 8Gi
-    existingClaim: ""
-    selector: {}
-    dataSource: {}
-
-imgproxy:
-  enabled: true
-  diagnosticMode:
-    enabled: false
-    command:
-      - sleep
-    args:
-      - infinity
-  replicaCount: 1
-  extraConfig: {}
-  existingConfigmap: ""
-  extraConfigExistingConfigmap: ""
-  image:
-    # FIXME: why doesn't this work???
-    # registry: ghcr.io
-    # repository: imgproxy/imgproxy
-    # FIXME: upstream is using `image: darthsim/imgproxy:v3.8.0`
-    registry: docker.io
-    repository: darthsim/imgproxy
-    tag: v3.26.1
-    digest: ""
-    pullPolicy: IfNotPresent
-    pullSecrets: []
-  containerPorts:
-    http: 5001
-  application:
-    # localFilesystemRoot: /
-    useEtag: true
-    enableWebpDetection: true
-
-  livenessProbe:
-    enabled: true
-    initialDelaySeconds: 30
-    periodSeconds: 10
-    timeoutSeconds: 5
-    failureThreshold: 6
-    successThreshold: 1
-  readinessProbe:
-    enabled: true
-    initialDelaySeconds: 5
-    periodSeconds: 10
-    timeoutSeconds: 5
-    failureThreshold: 6
-    successThreshold: 1
-  startupProbe:
-    enabled: false
-    initialDelaySeconds: 5
-    periodSeconds: 10
-    timeoutSeconds: 5
-    failureThreshold: 6
-    successThreshold: 1
-  customLivenessProbe: {}
-  customReadinessProbe: {}
-  customStartupProbe: {}
-  resourcesPreset: "medium"
-  resources: {}
-  podSecurityContext:
-    enabled: true
-    fsGroupChangePolicy: Always
-    sysctls: []
-    supplementalGroups: []
-    fsGroup: 1001
-  containerSecurityContext:
-    enabled: true
-    seLinuxOptions: {}
-    runAsUser: 1001
-    runAsGroup: 1001
-    runAsNonRoot: true
-    privileged: false
-    readOnlyRootFilesystem: true
-    allowPrivilegeEscalation: false
-    capabilities:
-      drop: ["ALL"]
-    seccompProfile:
-      type: "RuntimeDefault"
-  command: []
-  args: []
-  automountServiceAccountToken: false
-  hostAliases: []
-  podLabels: {}
-  podAnnotations: {}
-  podAffinityPreset: ""
-  podAntiAffinityPreset: soft
-  nodeAffinityPreset:
-    type: ""
-    key: ""
-    values: []
-  affinity: {}
-  nodeSelector: {}
-  tolerations: []
-  updateStrategy:
-    type: RollingUpdate
-  priorityClassName: ""
-  topologySpreadConstraints: []
-  schedulerName: ""
-  terminationGracePeriodSeconds: ""
-  lifecycleHooks: {}
-  extraEnvVars: []
-  extraEnvVarsCM: ""
-  extraEnvVarsSecret: ""
-  extraVolumes: []
-  extraVolumeMounts: []
-  sidecars: []
-  initContainers: []
-  service:
-    type: ClusterIP
-    ports:
-      http: 5001
-    nodePorts:
-      http: ""
-    clusterIP: ""
-    loadBalancerIP: ""
-    loadBalancerSourceRanges: []
-    externalTrafficPolicy: Cluster
-    annotations: {}
-    extraPorts: []
-    sessionAffinity: None
-    sessionAffinityConfig: {}
-  networkPolicy:
-    enabled: true
-    allowExternal: true
-    allowExternalEgress: true
-    extraIngress: []
-    extraEgress: []
-    ingressNSMatchLabels: {}
-    ingressNSPodMatchLabels: {}
-  persistence:
-    enabled: true
-    mountPath: /bitnami/supabase-imgproxy
-    subPath: ""
-    storageClass: ""
-    annotations: {}
-    accessModes:
-      - ReadWriteOnce
-    size: 8Gi
-    existingClaim: ""
-    selector: {}
-    dataSource: {}
-
-minio:
-  enabled: false
-  defaultBuckets: stub
-
-
-## @param publicURL Supabase API public URL
-##
-publicURL: ""
-## @param dbSSL Supabase API database connection mode for SSL. Applied to all components. Allowed values: verify-ca, verify-full, disable, allow, prefer, require
-## https://www.postgresql.org/docs/current/libpq-ssl.html
-##
-dbSSL: "disable"
 ## @section Supabase Auth Parameters
 ##
 ##
@@ -880,15 +557,15 @@ auth:
     API_EXTERNAL_URL: "http:/{{ include "supabase.auth.fullname" . }}:{{ .Values.auth.service.ports.http }}"
     GOTRUE_SITE_URL: {{ include "supabase.studio.publicURL" . | quote }}
     GOTRUE_URI_ALLOW_LIST: "*"
-    GOTRUE_DISABLE_SIGNUP: "false"
     GOTRUE_DB_DRIVER: "postgres"
     GOTRUE_DB_MIGRATIONS_PATH: "/usr/local/etc/auth/migrations/"
     GOTRUE_JWT_DEFAULT_GROUP_NAME: "authenticated"
     GOTRUE_JWT_ADMIN_ROLES: "service_role"
     GOTRUE_JWT_AUD: "authenticated"
     GOTRUE_JWT_EXP: "3600"
-    GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
-    GOTRUE_MAILER_AUTOCONFIRM: "true"
+    GOTRUE_DISABLE_SIGNUP: "true"
+    GOTRUE_EXTERNAL_EMAIL_ENABLED: "false"
+    GOTRUE_MAILER_AUTOCONFIRM: "false"
     GOTRUE_SMTP_ADMIN_EMAIL: "your-mail@example.com"
     GOTRUE_SMTP_HOST: "smtp.example.com"
     GOTRUE_SMTP_PORT: "587"
@@ -1290,6 +967,302 @@ auth:
     ##
     ingressNSMatchLabels: {}
     ingressNSPodMatchLabels: {}
+
+functions:
+  enabled: true
+  diagnosticMode:
+    enabled: false
+    command:
+      - sleep
+    args:
+      - infinity
+  userFunctionsPath: /bitnami/supabase-functions
+  entrypointPath: /home/deno/functions/main
+
+  workerMemoryLimitMb: 150
+  workerTimeoutSec: 400
+  workerCPUTimeSoftLimitMs: 1000
+  workerCPUTimeHardLimitMs: 2000
+  workerNoModuleCache: false
+  workerForceCreate: false
+  workerNetAccessDisabled: false
+  # workerImportMapPath:  # no default value
+
+  replicaCount: 1
+  extraConfig: {}
+  existingConfigmap: ""
+  extraConfigExistingConfigmap: ""
+  image:
+    registry: docker.io
+    repository: supabase/edge-runtime
+    # tag: v1.46.0
+    tag: v1.63.0
+    digest: ""
+    pullPolicy: IfNotPresent
+    pullSecrets: []
+  containerPorts:
+    http: 80
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 6
+    successThreshold: 1
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 6
+    successThreshold: 1
+  startupProbe:
+    enabled: false
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 6
+    successThreshold: 1
+  customLivenessProbe: {}
+  customReadinessProbe: {}
+  customStartupProbe: {}
+  resourcesPreset: "micro"
+  resources: {}
+  podSecurityContext:
+    enabled: false  # FIXME:
+    fsGroupChangePolicy: Always
+    sysctls: []
+    supplementalGroups: []
+    fsGroup: 1001
+  containerSecurityContext:
+    enabled: false  # FIXME:
+    seLinuxOptions: {}
+    runAsUser: 1001
+    runAsGroup: 1001
+    runAsNonRoot: true
+    privileged: false
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+    seccompProfile:
+      type: "RuntimeDefault"
+  command: []
+  args: []
+  automountServiceAccountToken: false
+  hostAliases: []
+  podLabels: {}
+  podAnnotations: {}
+  podAffinityPreset: ""
+  podAntiAffinityPreset: soft
+  nodeAffinityPreset:
+    type: ""
+    key: ""
+    values: []
+  affinity: {}
+  nodeSelector: {}
+  tolerations: []
+  updateStrategy:
+    type: RollingUpdate
+  priorityClassName: ""
+  topologySpreadConstraints: []
+  schedulerName: ""
+  terminationGracePeriodSeconds: ""
+  lifecycleHooks: {}
+  extraEnvVars: []
+  extraEnvVarsCM: ""
+  extraEnvVarsSecret: ""
+  extraVolumes: []
+  extraVolumeMounts: []
+  sidecars: []
+  initContainers: []
+  service:
+    type: ClusterIP
+    ports:
+      http: 80
+    nodePorts:
+      http: ""
+    clusterIP: ""
+    loadBalancerIP: ""
+    loadBalancerSourceRanges: []
+    externalTrafficPolicy: Cluster
+    annotations: {}
+    extraPorts: []
+    sessionAffinity: None
+    sessionAffinityConfig: {}
+  networkPolicy:
+    enabled: true
+    allowExternal: true
+    allowExternalEgress: true
+    extraIngress: []
+    extraEgress: []
+    ingressNSMatchLabels: {}
+    ingressNSPodMatchLabels: {}
+  persistence:
+    enabled: true
+    mountPath: /bitnami/supabase-functions
+    subPath: ""
+    storageClass: ""
+    annotations: {}
+    accessModes:
+      - ReadWriteOnce
+    size: 8Gi
+    existingClaim: ""
+    selector: {}
+    dataSource: {}
+
+imgproxy:
+  enabled: true
+  diagnosticMode:
+    enabled: false
+    command:
+      - sleep
+    args:
+      - infinity
+  replicaCount: 1
+  extraConfig: {}
+  existingConfigmap: ""
+  extraConfigExistingConfigmap: ""
+  image:
+    # FIXME: why doesn't this work???
+    # registry: ghcr.io
+    # repository: imgproxy/imgproxy
+    # FIXME: upstream is using `image: darthsim/imgproxy:v3.8.0`
+    registry: docker.io
+    repository: darthsim/imgproxy
+    tag: v3.26.1
+    digest: ""
+    pullPolicy: IfNotPresent
+    pullSecrets: []
+  containerPorts:
+    http: 5001
+  application:
+    # localFilesystemRoot: /
+    useEtag: true
+    enableWebpDetection: true
+
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 6
+    successThreshold: 1
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 6
+    successThreshold: 1
+  startupProbe:
+    enabled: false
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 6
+    successThreshold: 1
+  customLivenessProbe: {}
+  customReadinessProbe: {}
+  customStartupProbe: {}
+  resourcesPreset: "medium"
+  resources: {}
+  podSecurityContext:
+    enabled: true
+    fsGroupChangePolicy: Always
+    sysctls: []
+    supplementalGroups: []
+    fsGroup: 1001
+  containerSecurityContext:
+    enabled: true
+    seLinuxOptions: {}
+    runAsUser: 1001
+    runAsGroup: 1001
+    runAsNonRoot: true
+    privileged: false
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+    seccompProfile:
+      type: "RuntimeDefault"
+  command: []
+  args: []
+  automountServiceAccountToken: false
+  hostAliases: []
+  podLabels: {}
+  podAnnotations: {}
+  podAffinityPreset: ""
+  podAntiAffinityPreset: soft
+  nodeAffinityPreset:
+    type: ""
+    key: ""
+    values: []
+  affinity: {}
+  nodeSelector: {}
+  tolerations: []
+  updateStrategy:
+    type: RollingUpdate
+  priorityClassName: ""
+  topologySpreadConstraints: []
+  schedulerName: ""
+  terminationGracePeriodSeconds: ""
+  lifecycleHooks: {}
+  extraEnvVars: []
+  extraEnvVarsCM: ""
+  extraEnvVarsSecret: ""
+  extraVolumes: []
+  extraVolumeMounts: []
+  sidecars: []
+  initContainers: []
+  service:
+    type: ClusterIP
+    ports:
+      http: 5001
+    nodePorts:
+      http: ""
+    clusterIP: ""
+    loadBalancerIP: ""
+    loadBalancerSourceRanges: []
+    externalTrafficPolicy: Cluster
+    annotations: {}
+    extraPorts: []
+    sessionAffinity: None
+    sessionAffinityConfig: {}
+  networkPolicy:
+    enabled: true
+    allowExternal: true
+    allowExternalEgress: true
+    extraIngress: []
+    extraEgress: []
+    ingressNSMatchLabels: {}
+    ingressNSPodMatchLabels: {}
+  persistence:
+    enabled: true
+    mountPath: /bitnami/supabase-imgproxy
+    subPath: ""
+    storageClass: ""
+    annotations: {}
+    accessModes:
+      - ReadWriteOnce
+    size: 8Gi
+    existingClaim: ""
+    selector: {}
+    dataSource: {}
+
+minio:
+  enabled: false
+  defaultBuckets: stub
+
+
+## @param publicURL Supabase API public URL
+##
+publicURL: ""
+## @param dbSSL Supabase API database connection mode for SSL. Applied to all components. Allowed values: verify-ca, verify-full, disable, allow, prefer, require
+## https://www.postgresql.org/docs/current/libpq-ssl.html
+##
+dbSSL: "disable"
+
 ## @section Supabase Meta Parameters
 ##
 ##
@@ -3662,6 +3635,7 @@ serviceAccount:
   ## @param serviceAccount.automountServiceAccountToken Automount service account token for the server service account
   ##
   automountServiceAccountToken: false
+
 ## @section Kong sub-chart parameters
 ##
 kong:
@@ -3793,3 +3767,32 @@ externalDatabase:
   password: ""
   existingSecret: ""
   existingSecretPasswordKey: ""
+
+vector:
+  # FIXME: check this still works... docker-compose is still using `image: timberio/vector:0.28.1-alpine`
+  image:
+    # tag: 0.38.0-debian
+    tag: 0.42.0-debian
+  # command: [ "/bin/bash", "-c", "--" ]
+  # args: [ "while true; do sleep 10; done;" ]
+
+  dataDir: "/vector-data-dir"
+  role: "Agent"
+  enabled: true
+  existingConfigMaps:
+    - 'supabase-vectoragent-config'
+  containerPorts:
+    - name: prom-exporter
+      containerPort: 9090
+      protocol: TCP
+  service:
+    ports:
+      - protocol: TCP
+        port: 80
+        targetPort: 9090
+  env:
+    - name: LOGFLARE_API_KEY
+      valueFrom:
+        secretKeyRef:
+          name: supabase-logflare
+          key: api-key
