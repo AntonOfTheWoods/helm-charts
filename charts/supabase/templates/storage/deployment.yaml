@@ -159,6 +159,15 @@ spec:
             {{- include "common.tplvalues.render" (dict "value" .Values.storage.extraEnvVars "context" $) | nindent 12 }}
             {{- end }}
 
+
+            # FIXME: this is in the supabase/supabase docker compose but not in the actual project repo compose?!?!?
+            - name: FILE_SIZE_LIMIT
+              value: {{ .Values.storage.fileSizeLimit | quote }}
+            - name: UPLOAD_FILE_SIZE_LIMIT
+              value: {{ .Values.storage.uploadFileSizeLimit | quote }}
+            - name: UPLOAD_FILE_SIZE_LIMIT_STANDARD
+              value: {{ .Values.storage.uploadFileSizeLimitStandard | quote }}
+
             # ANON_KEY: ${ANON_KEY}
             # SERVICE_KEY: ${SERVICE_ROLE_KEY}
             # POSTGREST_URL: http://rest:3000

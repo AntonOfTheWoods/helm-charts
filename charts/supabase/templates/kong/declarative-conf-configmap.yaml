@@ -1,8 +1,3 @@
-{{- /*
-Copyright Broadcom, Inc. All Rights Reserved.
-SPDX-License-Identifier: APACHE-2.0
-*/}}
-
 {{- if and .Values.kong.enabled }}
 apiVersion: v1
 kind: ConfigMap
@@ -160,6 +155,10 @@ data:
       - name: functions-v1
         _comment: 'Edge Functions: /functions/v1/* -> http://{{ include "supabase.functions.fullname" . }}:{{ .Values.functions.service.ports.http }}/*'
         url: http://{{ include "supabase.functions.fullname" . }}:{{ .Values.functions.service.ports.http }}/
+        read_timeout: {{ .Values.functions.kongReadTimeoutMs | default 60000 }}
+        write_timeout: {{ .Values.functions.kongWriteTimeoutMs | default 60000 }}
+        connect_timeout: {{ .Values.functions.kongConnectTimeoutMs | default 60000 }}
+        retries: {{ .Values.functions.kongRetries | default 3 }}
         routes:
           - name: functions-v1-all
             strip_path: true

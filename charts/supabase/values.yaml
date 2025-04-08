@@ -979,6 +979,11 @@ functions:
   userFunctionsPath: /bitnami/supabase-functions
   entrypointPath: /home/deno/functions/main
 
+  # kongReadTimeoutMs: 60000
+  # kongWriteTimeoutMs: 60000
+  # kongConnectTimeoutMs: 60000
+  # kongRetries: 3
+
   workerMemoryLimitMb: 150
   workerTimeoutSec: 400
   workerCPUTimeSoftLimitMs: 1000
@@ -2532,6 +2537,17 @@ storage:
   ## @param storage.replicaCount Number of Supabase storage replicas to deploy
   ##
   replicaCount: 1
+
+  ## @param storage.fileSizeLimit
+  ##
+  fileSizeLimit: 52428800
+  ## @param storage.uploadFileSizeLimit
+  ##
+  uploadFileSizeLimit: 52428800
+  ## @param storage.uploadFileSizeLimit
+  ##
+  uploadFileSizeLimitStandard: 52428800
+
   ## @param storage.defaultConfig [string] Default configuration for Supabase storage
   ##
   defaultConfig: |
@@ -2543,7 +2559,6 @@ storage:
     GLOBAL_S3_BUCKET: "stub"
     DB_INSTALL_ROLES: "false"
     PGOPTIONS: "-c search_path=storage,public"
-    FILE_SIZE_LIMIT: "52428800"
     GLOBAL_S3_PROTOCOL: "http"
     GLOBAL_S3_FORCE_PATH_STYLE: "true"
     AWS_DEFAULT_REGION: "stub"

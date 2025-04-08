@@ -117,12 +117,11 @@ spec:
                   name: {{ include "supabase.jwt.secretName" . }}
                   key: {{ include "supabase.jwt.secretKey" . }}
 
-            # # FIXME: make sure this works!!!
-            # - name: PGRST_APP_SETTINGS_JWT_EXP
-            #   valueFrom:
-            #     secretKeyRef:
-            #       name: {{ include "supabase.jwt.secretName" . }}
-            #       key: expiry
+            - name: PGRST_APP_SETTINGS_JWT_EXP
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.jwt.secretName" . }}
+                  key: expiry
 
             {{- if .Values.rest.extraEnvVars }}
             {{- include "common.tplvalues.render" (dict "value" .Values.rest.extraEnvVars "context" $) | nindent 12 }}
