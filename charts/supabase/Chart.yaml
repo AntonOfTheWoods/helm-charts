@@ -14,10 +14,10 @@ dependencies:
 #   condition: analyticsdb.enabled
 - name: kong
   repository: https://charts.bitnami.com/bitnami
-  version: 15.1.x
+  version: 15.x
   condition: kong.enabled
 - name: minio
-  version: 15.x
+  version: 17.x
   repository: https://charts.bitnami.com/bitnami
   condition: minio.enabled
 - name: vector
@@ -41,4 +41,4 @@ maintainers:
 name: supabase
 sources:
 - https://github.com/supafull/supabase
-version: 0.0.9
+version: 0.0.10

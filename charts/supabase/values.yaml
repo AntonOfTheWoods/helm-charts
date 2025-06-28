@@ -3664,7 +3664,7 @@ kong:
   ##
   initContainers: |
     - name: render-kong-declarative-conf
-      image: '{{ include "kong.image" . }}'
+      image: docker.io/bitnami/os-shell:12-debian-12-r47
       command:
         - /bin/bash
       args:
@@ -3672,11 +3672,8 @@ kong:
         - |
           #!/bin/bash
 
-          . /opt/bitnami/scripts/liblog.sh
-
-          # We need to generate it in the tmp folder to ensure that we have write permissions
-          info "Rendering Supabase declarative config template"
-          render-template /bitnami/kong/declarative-template/kong.yml.tpl > "/bitnami/kong/declarative-conf/kong.yml"
+          echo "Rendering Supabase declarative config template"
+          /opt/bitnami/common/bin/render-template /bitnami/kong/declarative-template/kong.yml.tpl > "/bitnami/kong/declarative-conf/kong.yml"
       volumeMounts:
         - name: declarative-conf-template
           mountPath: /bitnami/kong/declarative-template/
@@ -3786,7 +3783,6 @@ externalDatabase:
 vector:
   # FIXME: check this still works... docker-compose is still using `image: timberio/vector:0.28.1-alpine`
   image:
-    # tag: 0.38.0-debian
     tag: 0.42.0-debian
   # command: [ "/bin/bash", "-c", "--" ]
   # args: [ "while true; do sleep 10; done;" ]
