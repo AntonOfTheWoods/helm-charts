@@ -1259,7 +1259,6 @@ minio:
   enabled: false
   defaultBuckets: stub
 
-
 ## @param publicURL Supabase API public URL
 ##
 publicURL: ""
@@ -3687,15 +3686,6 @@ kong:
   service:
     type: ClusterIP
     port: 8000
-  environment:
-    KONG_DATABASE: "off"
-    KONG_DECLARATIVE_CONFIG: /usr/local/kong/kong.yml
-    # https://github.com/supabase/cli/issues/14
-    KONG_DNS_ORDER: LAST,A,CNAME
-    KONG_PLUGINS: request-transformer,cors,key-auth,acl,basic-auth
-    KONG_NGINX_PROXY_PROXY_BUFFER_SIZE: 160k
-    KONG_NGINX_PROXY_PROXY_BUFFERS: 64 160k
-    KONG_LOG_LEVEL: warn
   ingress:
     enabled: false
     className: "nginx"
@@ -3738,7 +3728,7 @@ kong:
     #   cpu: 100m
     #   memory: 128Mi
   autoscaling:
-    enabled: true
+    enabled: false
     minReplicas: 1
     maxReplicas: 100
     targetCPUUtilizationPercentage: 80
@@ -3746,8 +3736,6 @@ kong:
   nodeSelector: {}
   tolerations: []
   affinity: {}
-
-
 
 # ## @section Kong sub-chart parameters
 # ##

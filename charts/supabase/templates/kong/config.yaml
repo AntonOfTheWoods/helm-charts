@@ -181,7 +181,11 @@ data:
     {{- if .Values.functions.enabled }}
       - name: functions-v1
         _comment: 'Edge Functions: /functions/v1/* -> http://{{ include "supabase.functions.fullname" . }}:{{ .Values.functions.service.port }}/*'
-        url: http://functions:{{ .Values.functions.service.port }}/
+        url: http://{{ include "supabase.functions.fullname" . }}:{{ .Values.functions.service.ports.http }}/
+        read_timeout: {{ .Values.functions.kongReadTimeoutMs | default 60000 }}
+        write_timeout: {{ .Values.functions.kongWriteTimeoutMs | default 60000 }}
+        connect_timeout: {{ .Values.functions.kongConnectTimeoutMs | default 60000 }}
+        retries: {{ .Values.functions.kongRetries | default 3 }}
         routes:
           - name: functions-v1-all
             strip_path: true

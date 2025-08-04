@@ -37,30 +37,61 @@ spec:
           command: ["/bin/bash"]
           args: ["/scripts/wrapper.sh"]
           env:
-            {{- range $key, $value := .Values.kong.environment }}
-            - name: {{ $key }}
-              value: {{ $value | quote }}
+            - name: KONG_DATABASE
+              value: "off"
+
+            - name: KONG_DECLARATIVE_CONFIG
+            {{- if .Values.kong.declarativeConfig }}
+              value: {{ .Values.kong.declarativeConfig }}
+            {{- else }}
+              value: /usr/local/kong/kong.yml
             {{- end }}
+            - name: KONG_DNS_ORDER
+            {{- if .Values.kong.dnsOrder }}
+              value: {{ .Values.kong.dnsOrder }}
+            {{- else }}
+              value: LAST,A,CNAME
+            {{- end }}
+            - name: KONG_PLUGINS
+            {{- if .Values.kong.plugins }}
+              value: {{ .Values.kong.plugins | join "," }}
+            {{- else }}
+              value: request-transformer,cors,key-auth,acl
+            {{- end }}
+            - name: KONG_NGINX_PROXY_BUFFER_SIZE
+            {{- if .Values.kong.nginxProxyBufferSize }}
+              value: {{ .Values.kong.nginxProxyBufferSize }}
+            {{- else }}
+              value: 160k
+            {{- end }}
+            - name: KONG_NGINX_PROXY_BUFFERS
+            {{- if .Values.kong.nginxProxyBuffers }}
+              value: {{ .Values.kong.nginxProxyBuffers }}
+            {{- else }}
+              value: "64 160k"
+            {{- end }}
+            - name: KONG_LOG_LEVEL
+            {{- if .Values.kong.logLevel }}
+              value: {{ .Values.kong.logLevel }}
+            {{- else }}
+              value: warn
+            {{- end }}
+
+            {{- if .Values.kong.extraEnvVars }}
+            {{- include "common.tplvalues.render" (dict "value" .Values.kong.extraEnvVars "context" $) | nindent 12 }}
+            {{- end }}
+
             - name: SUPABASE_ANON_KEY
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.jwt.secretRef }}
-                  name: {{ .Values.secret.jwt.secretRef }}
-                  key: {{ .Values.secret.jwt.secretRefKey.anonKey | default "anonKey" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.jwt" . }}
-                  key: anonKey
-                  {{- end }}
+                  name: '{{ include "supabase.jwt.secretName" . }}'
+                  key: '{{ include "supabase.jwt.anonSecretKey" . }}'
             - name: SUPABASE_SERVICE_KEY
               valueFrom:
                 secretKeyRef:
-                  {{- if .Values.secret.jwt.secretRef }}
-                  name: {{ .Values.secret.jwt.secretRef }}
-                  key: {{ .Values.secret.jwt.secretRefKey.serviceKey | default "serviceKey" }}
-                  {{- else }}
-                  name: {{ include "supabase.secret.jwt" . }}
-                  key: serviceKey
-                  {{- end }}
+                  name: '{{ include "supabase.jwt.secretName" . }}'
+                  key: '{{ include "supabase.jwt.serviceSecretKey" . }}'
+
           {{- with .Values.kong.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}

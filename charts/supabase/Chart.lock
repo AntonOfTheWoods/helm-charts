@@ -1,15 +1,12 @@
 dependencies:
-- name: kong
-  repository: https://charts.bitnami.com/bitnami
-  version: 15.4.14
 - name: minio
-  repository: https://charts.bitnami.com/bitnami
-  version: 17.0.9
+  repository: https://charts.min.io/
+  version: 5.4.0
 - name: vector
   repository: https://helm.vector.dev
-  version: 0.43.0
+  version: 0.44.0
 - name: common
   repository: https://charts.bitnami.com/bitnami
   version: 2.31.3
-digest: sha256:50bba85d52726c63a4173ceb27da10daa7670eb8f49647119bf97b179dce93fd
-generated: "2025-06-28T12:39:47.352279379+08:00"
+digest: sha256:c0fb757c7bd4dd6dc5e26690bcace7c6dd96a0c361a4c981a7788a528eab2bae
+generated: "2025-08-04T18:34:25.923869718+08:00"
