@@ -24,7 +24,8 @@ data:
   wrapper.sh: |
     #!/bin/bash
 
-    set -euo pipefail
+    # set -euo pipefail
+    set +e
 
     echo "Replacing env placeholders of /usr/local/kong/kong.yml"
 
@@ -33,28 +34,55 @@ data:
     -e "s/\${SUPABASE_SERVICE_KEY}/${SUPABASE_SERVICE_KEY}/" \
     /usr/local/kong/template.yml \
     > /usr/local/kong/kong.yml
-
-    exec /docker-entrypoint.sh kong docker-start
+    echo "Starting Kong with the following command:"
+    echo "kong docker-start"
+    exec /docker-entrypoint.sh kong docker-start || true
+    if [[ $? -ne 0 ]]; then
+      echo "Kong failed to start"
+      # exit 1
+      sleep infinity
+    fi
+    sleep infinity
   template.yml: |
     _format_version: '2.1'
     _transform: true
 
+    ###
+    ### Consumers / Users
+    ###
     consumers:
+      - username: DASHBOARD
       - username: anon
         keyauth_credentials:
-            - key: ${SUPABASE_ANON_KEY}
+          - key: $SUPABASE_ANON_KEY
       - username: service_role
         keyauth_credentials:
-            - key: ${SUPABASE_SERVICE_KEY}
+          - key: $SUPABASE_SERVICE_KEY
+
+    ###
+    ### Access Control List
+    ###
     acls:
       - consumer: anon
         group: anon
       - consumer: service_role
         group: admin
+
+    ###
+    ### Dashboard credentials
+    ###
+    basicauth_credentials:
+      - consumer: DASHBOARD
+        username: $DASHBOARD_USERNAME
+        password: $DASHBOARD_PASSWORD
+
+    ###
+    ### API Routes
+    ###
     services:
-    {{- if .Values.auth.enabled }}
+      ## Open Auth routes
       - name: auth-v1-open
-        url: http://{{ include "supabase.auth.fullname" . }}:{{ .Values.auth.service.port }}/verify
+        url: http://auth:9999/verify
         routes:
           - name: auth-v1-open
             strip_path: true
@@ -63,7 +91,7 @@ data:
         plugins:
           - name: cors
       - name: auth-v1-open-callback
-        url: http://{{ include "supabase.auth.fullname" . }}:{{ .Values.auth.service.port }}/callback
+        url: http://auth:9999/callback
         routes:
           - name: auth-v1-open-callback
             strip_path: true
@@ -72,7 +100,7 @@ data:
         plugins:
           - name: cors
       - name: auth-v1-open-authorize
-        url: http://{{ include "supabase.auth.fullname" . }}:{{ .Values.auth.service.port }}/authorize
+        url: http://auth:9999/authorize
         routes:
           - name: auth-v1-open-authorize
             strip_path: true
@@ -80,9 +108,11 @@ data:
               - /auth/v1/authorize
         plugins:
           - name: cors
+
+      ## Secure Auth routes
       - name: auth-v1
-        _comment: "GoTrue: /auth/v1/* -> http://{{ include "supabase.auth.fullname" . }}:{{ .Values.auth.service.port }}/*"
-        url: http://{{ include "supabase.auth.fullname" . }}:{{ .Values.auth.service.port }}
+        _comment: 'GoTrue: /auth/v1/* -> http://auth:9999/*'
+        url: http://auth:9999/
         routes:
           - name: auth-v1-all
             strip_path: true
@@ -99,11 +129,11 @@ data:
               allow:
                 - admin
                 - anon
-    {{- end }}
-    {{- if .Values.rest.enabled }}
+
+      ## Secure REST routes
       - name: rest-v1
-        _comment: "PostgREST: /rest/v1/* -> http://{{ include "supabase.rest.fullname" . }}:{{ .Values.rest.service.port }}/*"
-        url: http://{{ include "supabase.rest.fullname" . }}:{{ .Values.rest.service.port }}/
+        _comment: 'PostgREST: /rest/v1/* -> http://rest:3000/*'
+        url: http://rest:3000/
         routes:
           - name: rest-v1-all
             strip_path: true
@@ -120,9 +150,11 @@ data:
               allow:
                 - admin
                 - anon
+
+      ## Secure GraphQL routes
       - name: graphql-v1
-        _comment: 'PostgREST: /graphql/v1/* -> http://{{ include "supabase.rest.fullname" . }}:{{ .Values.rest.service.port }}/rpc/graphql'
-        url: http://{{ include "supabase.rest.fullname" . }}:{{ .Values.rest.service.port }}/rpc/graphql
+        _comment: 'PostgREST: /graphql/v1/* -> http://rest:3000/rpc/graphql'
+        url: http://rest:3000/rpc/graphql
         routes:
           - name: graphql-v1-all
             strip_path: true
@@ -144,13 +176,14 @@ data:
               allow:
                 - admin
                 - anon
-    {{- end }}
-    {{- if .Values.realtime.enabled }}
-      - name: realtime-v1
-        _comment: "Realtime: /realtime/v1/* -> ws://{{ include "supabase.realtime.fullname" . }}:{{ .Values.realtime.service.port }}/socket/*"
-        url: http://{{ include "supabase.realtime.fullname" . }}:{{ .Values.realtime.service.port }}/socket
+
+      ## Secure Realtime routes
+      - name: realtime-v1-ws
+        _comment: 'Realtime: /realtime/v1/* -> ws://realtime:4000/socket/*'
+        url: http://realtime-dev.supabase-realtime:4000/socket
+        protocol: ws
         routes:
-          - name: realtime-v1-all
+          - name: realtime-v1-ws
             strip_path: true
             paths:
               - /realtime/v1/
@@ -165,11 +198,30 @@ data:
               allow:
                 - admin
                 - anon
-    {{- end }}
-    {{- if .Values.storage.enabled }}
+      - name: realtime-v1-rest
+        _comment: 'Realtime: /realtime/v1/* -> ws://realtime:4000/socket/*'
+        url: http://realtime-dev.supabase-realtime:4000/api
+        protocol: http
+        routes:
+          - name: realtime-v1-rest
+            strip_path: true
+            paths:
+              - /realtime/v1/api
+        plugins:
+          - name: cors
+          - name: key-auth
+            config:
+              hide_credentials: false
+          - name: acl
+            config:
+              hide_groups_header: true
+              allow:
+                - admin
+                - anon
+      ## Storage routes: the storage server manages its own auth
       - name: storage-v1
-        _comment: "Storage: /storage/v1/* -> http://{{ include "supabase.storage.fullname" . }}:{{ .Values.storage.service.port }}/*"
-        url: http://{{ include "supabase.storage.fullname" . }}:{{ .Values.storage.service.port }}/
+        _comment: 'Storage: /storage/v1/* -> http://storage:5000/*'
+        url: http://storage:5000/
         routes:
           - name: storage-v1-all
             strip_path: true
@@ -177,15 +229,11 @@ data:
               - /storage/v1/
         plugins:
           - name: cors
-    {{- end }}
-    {{- if .Values.functions.enabled }}
+
+      ## Edge Functions routes
       - name: functions-v1
-        _comment: 'Edge Functions: /functions/v1/* -> http://{{ include "supabase.functions.fullname" . }}:{{ .Values.functions.service.port }}/*'
-        url: http://{{ include "supabase.functions.fullname" . }}:{{ .Values.functions.service.ports.http }}/
-        read_timeout: {{ .Values.functions.kongReadTimeoutMs | default 60000 }}
-        write_timeout: {{ .Values.functions.kongWriteTimeoutMs | default 60000 }}
-        connect_timeout: {{ .Values.functions.kongConnectTimeoutMs | default 60000 }}
-        retries: {{ .Values.functions.kongRetries | default 3 }}
+        _comment: 'Edge Functions: /functions/v1/* -> http://functions:9000/*'
+        url: http://functions:9000/
         routes:
           - name: functions-v1-all
             strip_path: true
@@ -193,21 +241,21 @@ data:
               - /functions/v1/
         plugins:
           - name: cors
-    {{- end }}
-    {{- if .Values.analytics.enabled }}
+
+      ## Analytics routes
       - name: analytics-v1
-        _comment: 'Analytics: /analytics/v1/* -> http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}/*'
-        url: http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}/
+        _comment: 'Analytics: /analytics/v1/* -> http://logflare:4000/*'
+        url: http://analytics:4000/
         routes:
           - name: analytics-v1-all
             strip_path: true
             paths:
               - /analytics/v1/
-    {{- end }}
-    {{- if .Values.meta.enabled }}
+
+      ## Secure Database routes
       - name: meta
-        _comment: "pg-meta: /pg/* -> http://{{ include "supabase.meta.fullname" . }}:{{ .Values.meta.service.port }}/*"
-        url: http://{{ include "supabase.meta.fullname" . }}:{{ .Values.meta.service.port }}/
+        _comment: 'pg-meta: /pg/* -> http://pg-meta:8080/*'
+        url: http://meta:8080/
         routes:
           - name: meta-all
             strip_path: true
@@ -222,5 +270,20 @@ data:
               hide_groups_header: true
               allow:
                 - admin
-    {{- end }}
+
+      ## Protected Dashboard - catch all remaining routes
+      - name: dashboard
+        _comment: 'Studio: /* -> http://studio:3000/*'
+        url: http://studio:3000/
+        routes:
+          - name: dashboard-all
+            strip_path: true
+            paths:
+              - /
+        plugins:
+          - name: cors
+          - name: basic-auth
+            config:
+              hide_credentials: true
+
 {{- end }}

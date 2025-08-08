@@ -3657,7 +3657,9 @@ kong:
     repository: kong
     pullPolicy: IfNotPresent
     # tag: "latest"
-    tag: 3.9.1-ubuntu
+    # tag: 3.9.1-ubuntu  # doesn't work!
+    # tag: 2.8.5-ubuntu
+    tag: 2.8.1
 
   imagePullSecrets: []
   replicaCount: 1
@@ -3686,6 +3688,20 @@ kong:
   service:
     type: ClusterIP
     port: 8000
+    ports:
+      proxyHttp: 8000
+
+#   ## @param kong.service.loadBalancerIP Kubernetes service LoadBalancer IP
+#   ## @param kong.service.type Kubernetes service type
+#   ## @param kong.service.ports.proxyHttp Kong service port
+#   ##
+#   service:
+#     loadBalancerIP: ""
+#     type: LoadBalancer
+#     ports:
+#       proxyHttp: 80
+#
+
   ingress:
     enabled: false
     className: "nginx"

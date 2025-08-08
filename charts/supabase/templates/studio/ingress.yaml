@@ -17,7 +17,7 @@ metadata:
   annotations: {{- include "common.tplvalues.render" ( dict "value" $annotations "context" $) | nindent 4 }}
   {{- end }}
 spec:
-  {{- if and .Values.studio.ingress.ingressClassName (eq "true" (include "common.ingress.supportsIngressClassname" .)) }}
+  {{- if .Values.studio.ingress.ingressClassName }}
   ingressClassName: {{ .Values.studio.ingress.ingressClassName | quote }}
   {{- end }}
   rules:
@@ -29,9 +29,7 @@ spec:
           {{- toYaml .Values.studio.ingress.extraPaths | nindent 10 }}
           {{- end }}
           - path: {{ .Values.studio.ingress.path }}
-            {{- if eq "true" (include "common.ingress.supportsPathType" .) }}
             pathType: {{ .Values.studio.ingress.pathType }}
-            {{- end }}
             backend: {{- include "common.ingress.backend" (dict "serviceName" (include "supabase.studio.fullname" .) "servicePort" "http-studio" "context" $)  | nindent 14 }}
     {{- end }}
     {{- range .Values.studio.ingress.extraHosts }}
@@ -39,9 +37,7 @@ spec:
       http:
         paths:
           - path: {{ default "/" .path }}
-            {{- if eq "true" (include "common.ingress.supportsPathType" $) }}
             pathType: {{ default "ImplementationSpecific" .pathType }}
-            {{- end }}
             backend: {{- include "common.ingress.backend" (dict "serviceName" (include "common.names.fullname" $) "servicePort" "http-studio" "context" $) | nindent 14 }}
     {{- end }}
     {{- if .Values.studio.ingress.extraRules }}

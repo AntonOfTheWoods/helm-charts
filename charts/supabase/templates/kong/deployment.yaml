@@ -34,8 +34,22 @@ spec:
             {{- toYaml .Values.kong.securityContext | nindent 12 }}
           image: "{{ .Values.kong.image.repository }}:{{ .Values.kong.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.kong.image.pullPolicy }}
+
+          {{- if .Values.diagnosticMode.enabled }}
+          command: {{- include "common.tplvalues.render" (dict "value" .Values.diagnosticMode.command "context" $) | nindent 12 }}
+          {{- else if .Values.kong.command }}
+          command: {{- include "common.tplvalues.render" (dict "value" .Values.kong.command "context" $) | nindent 12 }}
+          {{- else }}
           command: ["/bin/bash"]
+          {{- end }}
+          {{- if .Values.diagnosticMode.enabled }}
+          args: {{- include "common.tplvalues.render" (dict "value" .Values.diagnosticMode.args "context" $) | nindent 12 }}
+          {{- else if .Values.kong.args }}
+          args: {{- include "common.tplvalues.render" (dict "value" .Values.kong.args "context" $) | nindent 12 }}
+          {{- else }}
           args: ["/scripts/wrapper.sh"]
+          {{- end }}
+
           env:
             - name: KONG_DATABASE
               value: "off"
@@ -56,7 +70,8 @@ spec:
             {{- if .Values.kong.plugins }}
               value: {{ .Values.kong.plugins | join "," }}
             {{- else }}
-              value: request-transformer,cors,key-auth,acl
+              # value: request-transformer,cors,key-auth,acl
+              value: request-transformer,cors,key-auth,acl,basic-auth
             {{- end }}
             - name: KONG_NGINX_PROXY_BUFFER_SIZE
             {{- if .Values.kong.nginxProxyBufferSize }}
