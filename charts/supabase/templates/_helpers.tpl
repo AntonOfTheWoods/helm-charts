@@ -24,12 +24,22 @@ Return the proper Supabase API Public URL
 {{- define "supabase.api.publicURL" -}}
 {{- if .Values.publicURL -}}
 {{- print .Values.publicURL -}}
-{{- else if .Values.kong.ingress.enabled -}}
-{{- printf "http://%s" .Values.kong.ingress.hostname -}}
-{{- else if (and (eq .Values.kong.service.type "LoadBalancer") .Values.kong.service.loadBalancerIP) -}}
-{{- printf "http://%s:%d" .Values.kong.service.loadBalancerIP (int .Values.kong.service.ports.proxyHttp) -}}
+{{- else if .Values.istio.enabled -}}
+{{- /* If Istio is enabled, prefer the first host on HTTP */ -}}
+{{- printf "http://%s" (index (.Values.istio.hosts | default (list "supabase.example.com")) 0) -}}
 {{- else -}}
-{{- printf "http://localhost:%d" (int .Values.kong.service.ports.proxyHttp) -}}
+{{- printf "http://localhost:%d" 8080 -}}
+{{- end -}}
+{{- end -}}
+
+{{/* Convenience: API base (same as publicURL but guaranteed to be http scheme) */}}
+{{- define "supabase.api.baseHttp" -}}
+{{- if .Values.publicURL -}}
+{{- print .Values.publicURL -}}
+{{- else if .Values.istio.enabled -}}
+{{- printf "http://%s" (index (.Values.istio.hosts | default (list "supabase.example.com")) 0) -}}
+{{- else -}}
+{{- printf "http://localhost:%d" 8080 -}}
 {{- end -}}
 {{- end -}}
 

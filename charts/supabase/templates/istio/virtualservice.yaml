@@ -1,0 +1,239 @@
+{{- /*
+VirtualService routing to replace Kong path-based routes with strip_prefix behavior via rewrite.
+Dummy hosts are used by default. Adjust .Values.istio.hosts as needed.
+*/}}
+{{- if .Values.istio.enabled }}
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: {{ include "common.names.fullname" . }}-vs
+  namespace: {{ include "common.names.namespace" . | quote }}
+  labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ ) | nindent 4 }}
+    app.kubernetes.io/part-of: supabase
+    app.kubernetes.io/component: ingress
+spec:
+  hosts:
+    {{- if .Values.istio.hosts }}
+    {{- toYaml .Values.istio.hosts | nindent 4 }}
+    {{- else }}
+    - "supabase.example.com"
+    {{- end }}
+  gateways:
+    - {{ include "common.names.fullname" . }}-gateway
+  http:
+    # auth open endpoints
+    - name: auth-v1-verify
+      match:
+        - uri:
+            prefix: "/auth/v1/verify"
+      route:
+        - destination:
+            host: {{ include "supabase.auth.fullname" . }}.{{ include "common.names.namespace" . }}.svc.{{ .Values.clusterDomain }}
+            port:
+              number: {{ .Values.auth.service.ports.http }}
+      rewrite:
+        uri: "/verify"
+      corsPolicy:
+        allowOrigins: [{ exact: "*" }]
+        allowMethods: ["GET", "POST", "OPTIONS"]
+        allowHeaders: ["*"]
+        maxAge: "24h"
+        allowCredentials: true
+    - name: auth-v1-callback
+      match:
+        - uri:
+            prefix: "/auth/v1/callback"
+      route:
+        - destination:
+            host: {{ include "supabase.auth.fullname" . }}.{{ include "common.names.namespace" . }}.svc.{{ .Values.clusterDomain }}
+            port:
+              number: {{ .Values.auth.service.ports.http }}
+      rewrite:
+        uri: "/callback"
+      corsPolicy:
+        allowOrigins: [{ exact: "*" }]
+        allowMethods: ["GET", "POST", "OPTIONS"]
+        allowHeaders: ["*"]
+        maxAge: "24h"
+        allowCredentials: true
+    - name: auth-v1-authorize
+      match:
+        - uri:
+            prefix: "/auth/v1/authorize"
+      route:
+        - destination:
+            host: {{ include "supabase.auth.fullname" . }}.{{ include "common.names.namespace" . }}.svc.{{ .Values.clusterDomain }}
+            port:
+              number: {{ .Values.auth.service.ports.http }}
+      rewrite:
+        uri: "/authorize"
+      corsPolicy:
+        allowOrigins: [{ exact: "*" }]
+        allowMethods: ["GET", "POST", "OPTIONS"]
+        allowHeaders: ["*"]
+        maxAge: "24h"
+        allowCredentials: true
+    # auth secured wildcard
+    - name: auth-v1
+      match:
+        - uri:
+            prefix: "/auth/v1/"
+      route:
+        - destination:
+            host: {{ include "supabase.auth.fullname" . }}.{{ include "common.names.namespace" . }}.svc.{{ .Values.clusterDomain }}
+            port:
+              number: {{ .Values.auth.service.ports.http }}
+      rewrite:
+        uri: "/"
+      corsPolicy:
+        allowOrigins: [{ exact: "*" }]
+        allowMethods: ["GET", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"]
+        allowHeaders: ["*"]
+        maxAge: "24h"
+        allowCredentials: true
+    # rest
+    - name: rest-v1
+      match:
+        - uri:
+            prefix: "/rest/v1/"
+      route:
+        - destination:
+            host: {{ include "supabase.rest.fullname" . }}.{{ include "common.names.namespace" . }}.svc.{{ .Values.clusterDomain }}
+            port:
+              number: {{ .Values.rest.service.ports.http }}
+      rewrite:
+        uri: "/"
+      corsPolicy:
+        allowOrigins: [{ exact: "*" }]
+        allowMethods: ["GET", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"]
+        allowHeaders: ["*"]
+        maxAge: "24h"
+        allowCredentials: true
+      # graphql
+      - name: graphql-v1
+        match:
+          - uri:
+              exact: "/graphql/v1"
+        route:
+          - destination:
+              host: {{ include "supabase.rest.fullname" . }}.{{ include "common.names.namespace" . }}.svc.{{ .Values.clusterDomain }}
+              port:
+                number: {{ .Values.rest.service.ports.http }}
+        rewrite:
+          uri: "/rpc/graphql"
+        headers:
+          request:
+            add:
+              Content-Profile: ["graphql_public"]
+        corsPolicy:
+          allowOrigins: [{ exact: "*" }]
+          allowMethods: ["GET", "POST", "OPTIONS"]
+          allowHeaders: ["*"]
+          maxAge: "24h"
+          allowCredentials: true
+    # realtime api first (more specific), then websocket catch-all
+    - name: realtime-v1-rest
+      match:
+        - uri:
+            prefix: "/realtime/v1/api"
+      route:
+        - destination:
+            host: {{ include "supabase.realtime.fullname" . }}.{{ include "common.names.namespace" . }}.svc.{{ .Values.clusterDomain }}
+            port:
+              number: {{ .Values.realtime.service.ports.http }}
+      rewrite:
+        uri: "/api"
+      corsPolicy:
+        allowOrigins: [{ exact: "*" }]
+        allowMethods: ["GET", "POST", "OPTIONS"]
+        allowHeaders: ["*"]
+        maxAge: "24h"
+        allowCredentials: true
+    - name: realtime-v1-ws
+      match:
+        - uri:
+            prefix: "/realtime/v1/"
+      route:
+        - destination:
+            host: {{ include "supabase.realtime.fullname" . }}.{{ include "common.names.namespace" . }}.svc.{{ .Values.clusterDomain }}
+            port:
+              number: {{ .Values.realtime.service.ports.http }}
+      rewrite:
+        uri: "/socket"
+      corsPolicy:
+        allowOrigins: [{ exact: "*" }]
+        allowMethods: ["GET", "POST", "OPTIONS"]
+        allowHeaders: ["*"]
+        maxAge: "24h"
+        allowCredentials: true
+    # storage: add Forwarded header
+    - name: storage-v1
+      match:
+        - uri:
+            prefix: "/storage/v1/"
+      route:
+        - destination:
+            host: {{ include "supabase.storage.fullname" . }}.{{ include "common.names.namespace" . }}.svc.{{ .Values.clusterDomain }}
+            port:
+              number: {{ .Values.storage.service.ports.http }}
+      rewrite:
+        uri: "/"
+      headers:
+        request:
+          add:
+            Forwarded: ["proto=https"]
+      corsPolicy:
+        allowOrigins: [{ exact: "*" }]
+        allowMethods: ["GET", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"]
+        allowHeaders: ["*"]
+        maxAge: "24h"
+        allowCredentials: true
+    # pg-meta
+    - name: meta
+      match:
+        - uri:
+            prefix: "/pg/"
+      route:
+        - destination:
+            host: {{ include "supabase.meta.fullname" . }}.{{ include "common.names.namespace" . }}.svc.{{ .Values.clusterDomain }}
+            port:
+              number: {{ .Values.meta.service.ports.http }}
+      rewrite:
+        uri: "/"
+    # functions
+    - name: functions-v1
+      {{- $fnTimeoutMs := (coalesce .Values.functions.kongReadTimeoutMs 60000) -}}
+      timeout: {{ (printf "%sms" $fnTimeoutMs) | quote }}
+      match:
+        - uri:
+            prefix: "/functions/v1/"
+      route:
+        - destination:
+            host: {{ include "supabase.functions.fullname" . }}.{{ include "common.names.namespace" . }}.svc.{{ .Values.clusterDomain }}
+            port:
+              number: {{ .Values.functions.service.ports.http }}
+      {{- if .Values.functions.kongRetries }}
+      retries:
+        attempts: {{ .Values.functions.kongRetries }}
+      {{- end }}
+      rewrite:
+        uri: "/"
+      corsPolicy:
+        allowOrigins: [{ exact: "*" }]
+        allowMethods: ["GET", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"]
+        allowHeaders: ["*"]
+        maxAge: "24h"
+        allowCredentials: true
+    # analytics
+    - name: analytics-v1
+      match:
+        - uri:
+            prefix: "/analytics/v1/"
+      route:
+        - destination:
+            host: {{ include "supabase.analytics.fullname" . }}.{{ include "common.names.namespace" . }}.svc.{{ .Values.clusterDomain }}
+            port:
+              number: {{ .Values.analytics.service.ports.http | default 80 }}
+      rewrite:
+        uri: "/"
+{{- end }}

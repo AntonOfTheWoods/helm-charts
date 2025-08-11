@@ -1267,6 +1267,40 @@ publicURL: ""
 ##
 dbSSL: "disable"
 
+## Istio ingress configuration (replaces Kong)
+istio:
+  enabled: false
+  # DNS hosts served by the Gateway; use dummy by default
+  hosts:
+    - supabase.example.com
+  # If you run a custom ingressgateway deployment, set a selector here
+  # gatewaySelector:
+  #   istio: ingressgateway
+  redirectToTLS: false
+  tls:
+    enabled: false
+    # If using SIMPLE TLS, reference an existing secret on the ingressgateway
+    credentialName: ""
+  authz:
+    enabled: false
+    # Where to create policies (e.g., istio-system if selecting ingressgateway there)
+    namespace: ""
+    # Label selector that matches your ingress gateway deployment/pods
+    selector: {}
+    # JWT validation used to emulate Kong key-auth via JWTs at the edge
+    jwt:
+      issuer: "https://example-issuer/"
+      # Either provide jwksUri or inline jwks
+      jwksUri: ""
+      jwks: ""
+      audiences: []
+    # Optionally require specific audiences for protected APIs
+    requiredAudiences: []
+    # Meta (pg/*) admin-only controls
+    adminClaimKey: role
+    adminClaimValues:
+      - service_role
+
 ## @section Supabase Meta Parameters
 ##
 ##
@@ -3029,14 +3063,10 @@ studio:
   ## @param studio.defaultConfig [string] Supabase studio default configuration
   ##
   defaultConfig: |
-    SUPABASE_URL: "http://{{ include "supabase.kong.fullname" . }}.{{ include "common.names.namespace" . }}.svc.{{ .Values.clusterDomain }}:{{ .Values.kong.service.ports.proxyHttp }}"
-    STUDIO_PG_META_URL: "http://{{ include "supabase.kong.fullname" . }}.{{ include "common.names.namespace" . }}.svc.{{ .Values.clusterDomain }}:{{ .Values.kong.service.ports.proxyHttp }}/pg"
-    SUPABASE_PUBLIC_URL: {{ include "supabase.api.publicURL" . | quote }}
-    PORT: {{ .Values.studio.containerPorts.http | quote }}
-    {{- if .Values.analytics.enabled }}
-    LOGFLARE_URL: "http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.ports.http }}"
-    NEXT_PUBLIC_ENABLE_LOGS: "true"
-    {{- end }}
+    SUPABASE_URL: http://localhost:8080
+    STUDIO_PG_META_URL: http://localhost:8080/pg
+    SUPABASE_PUBLIC_URL: http://localhost:8080
+    PORT: 3000
   ## @param studio.extraEnvVars Array with extra environment variables to add to Supabase studio nodes
   ## e.g:
   ## extraEnvVars:
@@ -3650,108 +3680,108 @@ serviceAccount:
   ##
   automountServiceAccountToken: false
 
-kong:
-  # Enable kong provisioning
-  enabled: true
-  image:
-    repository: kong
-    pullPolicy: IfNotPresent
-    # tag: "latest"
-    # tag: 3.9.1-ubuntu  # doesn't work!
-    # tag: 2.8.5-ubuntu
-    tag: 2.8.1
-
-  imagePullSecrets: []
-  replicaCount: 1
-  nameOverride: ""
-  fullnameOverride: ""
-  livenessProbe: {}
-  readinessProbe: {}
-  serviceAccount:
-    # Specifies whether a service account should be created
-    create: true
-    # Annotations to add to the service account
-    annotations: {}
-    # The name of the service account to use.
-    # If not set and create is true, a name is generated using the fullname template
-    name: ""
-  podAnnotations: {}
-  podSecurityContext: {}
-    # fsGroup: 2000
-  securityContext: {}
-    # capabilities:
-    #   drop:
-    #   - ALL
-    # readOnlyRootFilesystem: true
-    # runAsNonRoot: true
-    # runAsUser: 1000
-  service:
-    type: ClusterIP
-    port: 8000
-    ports:
-      proxyHttp: 8000
-
-#   ## @param kong.service.loadBalancerIP Kubernetes service LoadBalancer IP
-#   ## @param kong.service.type Kubernetes service type
-#   ## @param kong.service.ports.proxyHttp Kong service port
-#   ##
-#   service:
-#     loadBalancerIP: ""
-#     type: LoadBalancer
-#     ports:
-#       proxyHttp: 80
+# kong:
+#   # Enable kong provisioning
+#   enabled: true
+#   image:
+#     repository: kong
+#     pullPolicy: IfNotPresent
+#     # tag: "latest"
+#     # tag: 3.9.1-ubuntu  # doesn't work!
+#     # tag: 2.8.5-ubuntu
+#     tag: 2.8.1
 #
-
-  ingress:
-    enabled: false
-    className: "nginx"
-    annotations:
-      nginx.ingress.kubernetes.io/rewrite-target: /
-      # cert-manager.io/cluster-issuer: "letsencrypt-staging"
-      # kubernetes.io/tls-acme: "true"
-    tls: []
-      # Define TLS secret for SSL termination.
-      # This section can be left blank if using cluster certificate manager.
-      # Otherwise, setting this in tandem with certificate manager will overwrite the secret name.
-      # - secretName: example-com-tls
-      #   hosts:
-      #     - supabase.local
-    hosts:
-      - host: supabase.local
-        paths:
-          - path: /
-            pathType: Prefix
-  # volumeMounts:
-  #   - name: volume_name
-  #     mountPath: /path/to/my/secret
-  # volumes:
-  #   - name: volume_name
-  #     secret:
-  #       defaultMode: 733
-  #       secretName: my_secret
-  #       items:
-  #       - key: my_secret.txt
-  #         path: name_of_file_in_container.txt
-  resources: {}
-    # We usually recommend not to specify default resources and to leave this as a conscious
-    # choice for the user. This also increases chances charts run on environments with little
-    # resources, such as Minikube. If you do want to specify resources, uncomment the following
-    # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
-    # limits:
-    #   cpu: 100m
-    #   memory: 128Mi
-    # requests:
-    #   cpu: 100m
-    #   memory: 128Mi
-  autoscaling:
-    enabled: false
-    minReplicas: 1
-    maxReplicas: 100
-    targetCPUUtilizationPercentage: 80
-    # targetMemoryUtilizationPercentage: 80
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
+#   imagePullSecrets: []
+#   replicaCount: 1
+#   nameOverride: ""
+#   fullnameOverride: ""
+#   livenessProbe: {}
+#   readinessProbe: {}
+#   serviceAccount:
+#     # Specifies whether a service account should be created
+#     create: true
+#     # Annotations to add to the service account
+#     annotations: {}
+#     # The name of the service account to use.
+#     # If not set and create is true, a name is generated using the fullname template
+#     name: ""
+#   podAnnotations: {}
+#   podSecurityContext: {}
+#     # fsGroup: 2000
+#   securityContext: {}
+#     # capabilities:
+#     #   drop:
+#     #   - ALL
+#     # readOnlyRootFilesystem: true
+#     # runAsNonRoot: true
+#     # runAsUser: 1000
+#   service:
+#     type: ClusterIP
+#     port: 8000
+#     ports:
+#       proxyHttp: 8000
+#
+# #   ## @param kong.service.loadBalancerIP Kubernetes service LoadBalancer IP
+# #   ## @param kong.service.type Kubernetes service type
+# #   ## @param kong.service.ports.proxyHttp Kong service port
+# #   ##
+# #   service:
+# #     loadBalancerIP: ""
+# #     type: LoadBalancer
+# #     ports:
+# #       proxyHttp: 80
+# #
+#
+#   ingress:
+#     enabled: false
+#     className: "nginx"
+#     annotations:
+#       nginx.ingress.kubernetes.io/rewrite-target: /
+#       # cert-manager.io/cluster-issuer: "letsencrypt-staging"
+#       # kubernetes.io/tls-acme: "true"
+#     tls: []
+#       # Define TLS secret for SSL termination.
+#       # This section can be left blank if using cluster certificate manager.
+#       # Otherwise, setting this in tandem with certificate manager will overwrite the secret name.
+#       # - secretName: example-com-tls
+#       #   hosts:
+#       #     - supabase.local
+#     hosts:
+#       - host: supabase.local
+#         paths:
+#           - path: /
+#             pathType: Prefix
+#   # volumeMounts:
+#   #   - name: volume_name
+#   #     mountPath: /path/to/my/secret
+#   # volumes:
+#   #   - name: volume_name
+#   #     secret:
+#   #       defaultMode: 733
+#   #       secretName: my_secret
+#   #       items:
+#   #       - key: my_secret.txt
+#   #         path: name_of_file_in_container.txt
+#   resources: {}
+#     # We usually recommend not to specify default resources and to leave this as a conscious
+#     # choice for the user. This also increases chances charts run on environments with little
+#     # resources, such as Minikube. If you do want to specify resources, uncomment the following
+#     # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+#     # limits:
+#     #   cpu: 100m
+#     #   memory: 128Mi
+#     # requests:
+#     #   cpu: 100m
+#     #   memory: 128Mi
+#   autoscaling:
+#     enabled: false
+#     minReplicas: 1
+#     maxReplicas: 100
+#     targetCPUUtilizationPercentage: 80
+#     # targetMemoryUtilizationPercentage: 80
+#   nodeSelector: {}
+#   tolerations: []
+#   affinity: {}
 
 # ## @section Kong sub-chart parameters
 # ##

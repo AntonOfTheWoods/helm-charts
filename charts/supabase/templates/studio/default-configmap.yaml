@@ -16,4 +16,13 @@ metadata:
   annotations: {{- include "common.tplvalues.render" ( dict "value" .Values.commonAnnotations "context" $ ) | nindent 4 }}
   {{- end }}
 data: {{- include "common.tplvalues.render" (dict "value" .Values.studio.defaultConfig "context" $) | nindent 2 }}
+  {{- /* Inject computed defaults overriding simple placeholders */ -}}
+  SUPABASE_URL: {{ include "supabase.api.baseHttp" . | quote }}
+  STUDIO_PG_META_URL: {{ printf "%s/pg" (include "supabase.api.baseHttp" .) | quote }}
+  SUPABASE_PUBLIC_URL: {{ include "supabase.api.publicURL" . | quote }}
+  PORT: {{ .Values.studio.containerPorts.http | quote }}
+  {{- if .Values.analytics.enabled }}
+  LOGFLARE_URL: "http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.ports.http }}"
+  NEXT_PUBLIC_ENABLE_LOGS: "true"
+  {{- end }}
 {{- end }}
