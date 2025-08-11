@@ -1,16 +1,30 @@
 {{- /*
-Istio security policies to emulate Kong key-auth and ACL groups using JWTs.
-We define RequestAuthentication (JWT) and AuthorizationPolicies that:
-- Allow open auth endpoints without JWT
-- Require JWT for other API paths, with optional audience/claim checks
-Dummy JWKS and issuers can be overridden in values.
+Minimal Istio AuthorizationPolicies to mirror Kong key-auth + ACL behavior using static keys.
+- Open endpoints: /auth/v1/verify, /auth/v1/callback, /auth/v1/authorize
+- Protected: /auth/v1/*, /rest/v1/*, /realtime/v1/* require apikey equal to anon or service key
+- Meta admin-only: /pg/* requires service key
+Keys are read from Secret `supabase-jwt` (anon-key, service-key), with optional overrides via .Values.jwt.
 */}}
 {{- if and .Values.istio.enabled .Values.istio.authz.enabled }}
+{{- $ns := include "common.names.namespace" . -}}
+{{- $jwtSecret := lookup "v1" "Secret" $ns "supabase-jwt" -}}
+{{- $anonKey := "" -}}
+{{- if .Values.jwt.anonKey -}}
+  {{- $anonKey = .Values.jwt.anonKey -}}
+{{- else if $jwtSecret -}}
+  {{- $anonKey = (index $jwtSecret.data "anon-key" | default "" | b64dec) -}}
+{{- end -}}
+{{- $svcKey := "" -}}
+{{- if .Values.jwt.serviceKey -}}
+  {{- $svcKey = .Values.jwt.serviceKey -}}
+{{- else if $jwtSecret -}}
+  {{- $svcKey = (index $jwtSecret.data "service-key" | default "" | b64dec) -}}
+{{- end -}}
 ---
 apiVersion: security.istio.io/v1
-kind: RequestAuthentication
+kind: AuthorizationPolicy
 metadata:
-  name: {{ include "common.names.fullname" . }}-jwt
+  name: {{ include "common.names.fullname" . }}-allow-open
   namespace: {{ (coalesce .Values.istio.authz.namespace (include "common.names.namespace" .)) | quote }}
   labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ ) | nindent 4 }}
     app.kubernetes.io/part-of: supabase
@@ -22,77 +36,47 @@ spec:
       {{- else }}
       istio: ingressgateway
       {{- end }}
-  jwtRules:
-    - issuer: {{ .Values.istio.authz.jwt.issuer | default "https://example-issuer/" | quote }}
-      fromHeaders:
-        # Accept Supabase JWT provided via the Kong key-auth default header
-        - name: apikey
-        # And standard Authorization: Bearer <jwt>
-        - name: Authorization
-          prefix: "Bearer "
-      {{- if .Values.istio.authz.jwt.audiences }}
-      audiences: {{ toYaml .Values.istio.authz.jwt.audiences | nindent 6 }}
-      {{- end }}
-      {{- if .Values.istio.authz.jwt.jwksUri }}
-      jwksUri: {{ .Values.istio.authz.jwt.jwksUri | quote }}
-      {{- else if .Values.istio.authz.jwt.jwks }}
-      jwks: |-
-{{ .Values.istio.authz.jwt.jwks | indent 8 }}
-      {{- end }}
----
-apiVersion: security.istio.io/v1
-kind: AuthorizationPolicy
-metadata:
-  name: {{ include "common.names.fullname" . }}-allow-open-auth
-  namespace: {{ (coalesce .Values.istio.authz.namespace (include "common.names.namespace" .)) | quote }}
-  labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ ) | nindent 4 }}
-    app.kubernetes.io/part-of: supabase
-spec:
-  selector:
-    matchLabels:
-  {{- if .Values.istio.authz.selector }}
-{{ toYaml .Values.istio.authz.selector | indent 6 }}
-  {{- else }}
-  istio: ingressgateway
-  {{- end }}
   action: ALLOW
   rules:
     - to:
         - operation:
             paths: ["/auth/v1/verify*", "/auth/v1/callback*", "/auth/v1/authorize*"]
+  - to:
+    - operation:
+      paths: ["/functions/v1/*", "/storage/v1/*"]
+---
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
-  name: {{ include "common.names.fullname" . }}-require-jwt
+  name: {{ include "common.names.fullname" . }}-allow-protected
   namespace: {{ (coalesce .Values.istio.authz.namespace (include "common.names.namespace" .)) | quote }}
   labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ ) | nindent 4 }}
     app.kubernetes.io/part-of: supabase
 spec:
   selector:
     matchLabels:
-  {{- if .Values.istio.authz.selector }}
+      {{- if .Values.istio.authz.selector }}
 {{ toYaml .Values.istio.authz.selector | indent 6 }}
-  {{- else }}
-  istio: ingressgateway
-  {{- end }}
+      {{- else }}
+      istio: ingressgateway
+      {{- end }}
   action: ALLOW
   rules:
-    - from:
-        - source:
-            requestPrincipals: ["*"]
-      to:
+    - to:
         - operation:
             paths:
               - "/auth/v1/*"
               - "/rest/v1/*"
               - "/realtime/v1/*"
-              - "/pg/*"
-              - "/functions/v1/*"
-      {{- if .Values.istio.authz.requiredAudiences }}
       when:
-        - key: request.auth.audiences
-          values: {{ toYaml .Values.istio.authz.requiredAudiences | nindent 12 }}
-      {{- end }}
+        - key: request.headers[apikey]
+          values:
+            {{- if $anonKey }}
+            - {{ $anonKey | quote }}
+            {{- end }}
+            {{- if $svcKey }}
+            - {{ $svcKey | quote }}
+            {{- end }}
 ---
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
@@ -104,23 +88,24 @@ metadata:
 spec:
   selector:
     matchLabels:
-  {{- if .Values.istio.authz.selector }}
+      {{- if .Values.istio.authz.selector }}
 {{ toYaml .Values.istio.authz.selector | indent 6 }}
-  {{- else }}
-  istio: ingressgateway
-  {{- end }}
+      {{- else }}
+      istio: ingressgateway
+      {{- end }}
   action: ALLOW
   rules:
-    - from:
-        - source:
-            requestPrincipals: ["*"]
-      to:
+    - to:
         - operation:
             paths: ["/pg/*"]
       when:
-        - key: request.auth.claims[{{ .Values.istio.authz.adminClaimKey | default "role" | quote }}]
-          values: {{ toYaml (.Values.istio.authz.adminClaimValues | default (list "service_role")) | nindent 12 }}
-apiVersion: security.istio.io/v1beta1
+        - key: request.headers[apikey]
+          values:
+            {{- if $svcKey }}
+            - {{ $svcKey | quote }}
+            {{- end }}
+---
+apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
   name: {{ include "common.names.fullname" . }}-deny-all
@@ -130,11 +115,11 @@ metadata:
 spec:
   selector:
     matchLabels:
-  {{- if .Values.istio.authz.selector }}
+      {{- if .Values.istio.authz.selector }}
 {{ toYaml .Values.istio.authz.selector | indent 6 }}
-  {{- else }}
-  istio: ingressgateway
-  {{- end }}
+      {{- else }}
+      istio: ingressgateway
+      {{- end }}
   action: DENY
   rules:
     - to:

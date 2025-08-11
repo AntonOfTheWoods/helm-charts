@@ -103,52 +103,16 @@ spec:
               number: {{ .Values.rest.service.ports.http }}
       rewrite:
         uri: "/"
+      headers:
+        request:
+          remove: ["apikey", "authorization"]
       corsPolicy:
         allowOrigins: [{ exact: "*" }]
         allowMethods: ["GET", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"]
         allowHeaders: ["*"]
         maxAge: "24h"
         allowCredentials: true
-      # graphql
-      - name: graphql-v1
-        match:
-          - uri:
-              exact: "/graphql/v1"
-        route:
-          - destination:
-              host: {{ include "supabase.rest.fullname" . }}.{{ include "common.names.namespace" . }}.svc.{{ .Values.clusterDomain }}
-              port:
-                number: {{ .Values.rest.service.ports.http }}
-        rewrite:
-          uri: "/rpc/graphql"
-        headers:
-          request:
-            add:
-              Content-Profile: ["graphql_public"]
-        corsPolicy:
-          allowOrigins: [{ exact: "*" }]
-          allowMethods: ["GET", "POST", "OPTIONS"]
-          allowHeaders: ["*"]
-          maxAge: "24h"
-          allowCredentials: true
     # realtime api first (more specific), then websocket catch-all
-    - name: realtime-v1-rest
-      match:
-        - uri:
-            prefix: "/realtime/v1/api"
-      route:
-        - destination:
-            host: {{ include "supabase.realtime.fullname" . }}.{{ include "common.names.namespace" . }}.svc.{{ .Values.clusterDomain }}
-            port:
-              number: {{ .Values.realtime.service.ports.http }}
-      rewrite:
-        uri: "/api"
-      corsPolicy:
-        allowOrigins: [{ exact: "*" }]
-        allowMethods: ["GET", "POST", "OPTIONS"]
-        allowHeaders: ["*"]
-        maxAge: "24h"
-        allowCredentials: true
     - name: realtime-v1-ws
       match:
         - uri:
@@ -224,16 +188,5 @@ spec:
         allowHeaders: ["*"]
         maxAge: "24h"
         allowCredentials: true
-    # analytics
-    - name: analytics-v1
-      match:
-        - uri:
-            prefix: "/analytics/v1/"
-      route:
-        - destination:
-            host: {{ include "supabase.analytics.fullname" . }}.{{ include "common.names.namespace" . }}.svc.{{ .Values.clusterDomain }}
-            port:
-              number: {{ .Values.analytics.service.ports.http | default 80 }}
-      rewrite:
-        uri: "/"
+
 {{- end }}

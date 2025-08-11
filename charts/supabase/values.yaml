@@ -1287,19 +1287,7 @@ istio:
     namespace: ""
     # Label selector that matches your ingress gateway deployment/pods
     selector: {}
-    # JWT validation used to emulate Kong key-auth via JWTs at the edge
-    jwt:
-      issuer: "https://example-issuer/"
-      # Either provide jwksUri or inline jwks
-      jwksUri: ""
-      jwks: ""
-      audiences: []
-    # Optionally require specific audiences for protected APIs
-    requiredAudiences: []
-    # Meta (pg/*) admin-only controls
-    adminClaimKey: role
-    adminClaimValues:
-      - service_role
+  # No JWT validation is used; static header checks only
 
 ## @section Supabase Meta Parameters
 ##
