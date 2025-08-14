@@ -1269,10 +1269,10 @@ dbSSL: "disable"
 
 ## Istio ingress configuration (replaces Kong)
 istio:
-  enabled: false
+  enabled: true
   # DNS hosts served by the Gateway; use dummy by default
   hosts:
-    - supabase.example.com
+    - supabase.localhost
   # If you run a custom ingressgateway deployment, set a selector here
   # gatewaySelector:
   #   istio: ingressgateway
@@ -1284,10 +1284,9 @@ istio:
   authz:
     enabled: false
     # Where to create policies (e.g., istio-system if selecting ingressgateway there)
-    namespace: ""
+    namespace: "istio-ingress"
     # Label selector that matches your ingress gateway deployment/pods
     selector: {}
-  # No JWT validation is used; static header checks only
 
 ## @section Supabase Meta Parameters
 ##

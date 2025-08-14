@@ -145,7 +145,7 @@ spec:
       headers:
         request:
           add:
-            Forwarded: ["proto=https"]
+            Forwarded: "proto=https"
       corsPolicy:
         allowOrigins: [{ exact: "*" }]
         allowMethods: ["GET", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"]
@@ -166,8 +166,6 @@ spec:
         uri: "/"
     # functions
     - name: functions-v1
-      {{- $fnTimeoutMs := (coalesce .Values.functions.kongReadTimeoutMs 60000) -}}
-      timeout: {{ (printf "%sms" $fnTimeoutMs) | quote }}
       match:
         - uri:
             prefix: "/functions/v1/"
@@ -176,10 +174,6 @@ spec:
             host: {{ include "supabase.functions.fullname" . }}.{{ include "common.names.namespace" . }}.svc.{{ .Values.clusterDomain }}
             port:
               number: {{ .Values.functions.service.ports.http }}
-      {{- if .Values.functions.kongRetries }}
-      retries:
-        attempts: {{ .Values.functions.kongRetries }}
-      {{- end }}
       rewrite:
         uri: "/"
       corsPolicy:

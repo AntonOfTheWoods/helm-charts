@@ -1,8 +1,3 @@
-{{- /*
-Copyright Broadcom, Inc. All Rights Reserved.
-SPDX-License-Identifier: APACHE-2.0
-*/}}
-
 {{- if .Values.meta.enabled }}
 apiVersion: {{ include "common.capabilities.deployment.apiVersion" . }}
 kind: Deployment
@@ -36,12 +31,13 @@ spec:
         {{- if .Values.meta.extraConfig }}
         checksum/extra-configmap: {{ include (print $.Template.BasePath "/meta/extra-configmap.yaml") . | sha256sum }}
         {{- end }}
-  {{- $ns := include "common.names.namespace" . -}}
-  {{- $jwtSec := lookup "v1" "Secret" $ns (include "supabase.jwt.secretName" .) -}}
-  {{- if $jwtSec }}
-  checksum/jwt-secret: {{ toYaml $jwtSec.data | sha256sum }}
-  {{- end }}
-      labels: {{- include "common.labels.standard" ( dict "customLabels" $podLabels "context" $ ) | nindent 8 }}
+        {{- $ns := include "common.names.namespace" . -}}
+        {{- $jwtSec := lookup "v1" "Secret" $ns (include "supabase.jwt.secretName" .) -}}
+        {{- if $jwtSec }}
+        checksum/jwt-secret: {{ toYaml $jwtSec.data | sha256sum }}
+        {{- end }}
+      labels:
+        {{- include "common.labels.standard" ( dict "customLabels" $podLabels "context" $ ) | nindent 8 }}
         app.kubernetes.io/part-of: supabase
         app.kubernetes.io/component: meta
     spec:

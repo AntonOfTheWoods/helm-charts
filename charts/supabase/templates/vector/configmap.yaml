@@ -235,8 +235,8 @@ data:
         method: 'post'
         request:
           retry_max_duration_secs: 10
-  # Send directly to analytics service; no Kong in Istio mode
-  uri: 'http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}/api/logs?source_name=postgres.logs&api_key=SECRET[credentials.logflare_api_key]'
+        # Send directly to analytics service; no Kong in Istio mode
+        uri: 'http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}/api/logs?source_name=postgres.logs&api_key=SECRET[credentials.logflare_api_key]'
       logflare_functions:
         type: 'http'
         inputs:
