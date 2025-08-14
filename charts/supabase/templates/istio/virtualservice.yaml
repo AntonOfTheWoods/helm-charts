@@ -18,6 +18,9 @@ spec:
     {{- else }}
     - "supabase.example.com"
     {{- end }}
+    {{- if .Values.istio.internalHost }}
+    - {{ .Values.istio.internalHost | quote }}
+    {{- end }}
   gateways:
     - {{ include "common.names.fullname" . }}-gateway
   http:

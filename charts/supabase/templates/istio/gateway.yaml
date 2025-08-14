@@ -29,6 +29,9 @@ spec:
         {{- else }}
         - "supabase.example.com"
         {{- end }}
+        {{- if .Values.istio.internalHost }}
+        - {{ .Values.istio.internalHost | quote }}
+        {{- end }}
       {{- if .Values.istio.redirectToTLS }}
       tls:
         httpsRedirect: true

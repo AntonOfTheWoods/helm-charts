@@ -1054,7 +1054,7 @@ functions:
       type: "RuntimeDefault"
   command: []
   args: []
-  automountServiceAccountToken: false
+  automountServiceAccountToken: true  # Enable for ambient mesh mTLS identity (was causing connection resets)
   hostAliases: []
   podLabels: {}
   podAnnotations: {}
@@ -1273,6 +1273,14 @@ istio:
   # DNS hosts served by the Gateway; use dummy by default
   hosts:
     - supabase.localhost
+  # Optional additional in-cluster host (no Host header override needed). If set, will be added to VirtualService hosts.
+  internalHost: ""
+  # Create an ExternalName Service in application namespace pointing to the ingress gateway so internalHost resolves.
+  createInternalService: false
+  internalService:
+    name: supabase-internal
+    # Target fully-qualified service name of the ingress gateway service.
+    externalName: istio-ingress.istio-ingress.svc.cluster.local
   # If you run a custom ingressgateway deployment, set a selector here
   # gatewaySelector:
   #   istio: ingressgateway

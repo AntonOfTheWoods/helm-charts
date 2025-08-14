@@ -1,0 +1,14 @@
+{{- /* Optional ExternalName service to allow using an internal host without custom Host header */ -}}
+{{- if and .Values.istio.createInternalService .Values.istio.internalHost }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.istio.internalService.name | default "supabase-internal" }}
+  namespace: {{ include "common.names.namespace" . | quote }}
+  labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ ) | nindent 4 }}
+    app.kubernetes.io/part-of: supabase
+    app.kubernetes.io/component: ingress
+spec:
+  type: ExternalName
+  externalName: {{ .Values.istio.internalService.externalName | default "istio-ingress.istio-ingress.svc.cluster.local" }}
+{{- end }}
