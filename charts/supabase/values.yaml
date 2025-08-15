@@ -1257,8 +1257,8 @@ imgproxy:
 
 minio:
   enabled: false
-  defaultBuckets: stub
-
+  buckets:
+    - name: stub
 ## @param publicURL Supabase API public URL
 ##
 publicURL: ""
@@ -1275,12 +1275,11 @@ istio:
     - supabase.localhost
   # Optional additional in-cluster host (no Host header override needed). If set, will be added to VirtualService hosts.
   internalHost: ""
-  # Create an ExternalName Service in application namespace pointing to the ingress gateway so internalHost resolves.
-  createInternalService: false
   internalService:
     name: supabase-internal
     # Target fully-qualified service name of the ingress gateway service.
     externalName: istio-ingress.istio-ingress.svc.cluster.local
+
   # If you run a custom ingressgateway deployment, set a selector here
   # gatewaySelector:
   #   istio: ingressgateway
@@ -3468,7 +3467,7 @@ studio:
     enabled: false
     ## @param studio.ingress.pathType Ingress path type
     ##
-    pathType: ImplementationSpecific
+    pathType: Prefix
     ## @param studio.ingress.hostname Default host for the ingress record
     ##
     hostname: supabase-studio.local

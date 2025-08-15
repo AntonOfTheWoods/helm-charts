@@ -13,8 +13,6 @@ Return the proper Supabase Studio Public URL
 {{- printf "http://%s" .Values.studio.ingress.hostname -}}
 {{- else if (and (eq .Values.studio.service.type "LoadBalancer") .Values.studio.service.loadBalancerIP) -}}
 {{- printf "http://%s:%d" .Values.studio.service.loadBalancerIP (int .Values.studio.service.ports.http) -}}
-{{- else -}}
-{{- printf "http://localhost:%d" (int .Values.kong.service.ports.proxyHttp) -}}
 {{- end -}}
 {{- end -}}
 
@@ -25,22 +23,16 @@ Return the proper Supabase API Public URL
 {{- if .Values.publicURL -}}
 {{- print .Values.publicURL -}}
 {{- else if .Values.istio.enabled -}}
-{{- /* If Istio is enabled, prefer the first host on HTTP */ -}}
-{{- printf "http://%s" (index (.Values.istio.hosts | default (list "supabase.example.com")) 0) -}}
-{{- else -}}
-{{- printf "http://localhost:%d" 8080 -}}
+{{- printf "https://%s" (index (.Values.istio.hosts | default (list "supabase.example.com")) 0) -}}
 {{- end -}}
 {{- end -}}
 
-{{/* Convenience: API base (same as publicURL but guaranteed to be http scheme) */}}
-{{- define "supabase.api.baseHttp" -}}
-{{- if .Values.publicURL -}}
-{{- print .Values.publicURL -}}
-{{- else if .Values.istio.enabled -}}
-{{- printf "http://%s" (index (.Values.istio.hosts | default (list "supabase.example.com")) 0) -}}
-{{- else -}}
-{{- printf "http://localhost:%d" 8080 -}}
+{{- define "supabase.api.baseHost" -}}
+{{- printf "%s.%s.svc.%s" (.Values.istio.internalService.name | default "supabase-internal") (include "common.names.namespace" .) .Values.clusterDomain -}}
 {{- end -}}
+
+{{- define "supabase.api.baseHttp" -}}
+{{- printf "http://%s" (include "supabase.api.baseHost" .) -}}
 {{- end -}}
 
 {{/*
@@ -411,13 +403,6 @@ Create the name of the service account to use
 {{- end -}}
 
 {{/*
-Return kong fullname
-*/}}
-{{- define "supabase.kong.fullname" -}}
-{{- include "common.names.dependency.fullname" (dict "chartName" "kong" "chartValues" .Values.kong "context" $) -}}
-{{- end -}}
-
-{{/*
 Compile all warnings into a single message.
 */}}
 {{- define "supabase.validateValues" -}}
@@ -449,11 +434,11 @@ supabase: Services
 {{- end -}}
 
 {{/*
-Return supabase kong connection details
+Return supabase istio connection details
 */}}
 {{- define "supabase.api" -}}
 - name: SUPABASE_URL
-  value: "http://{{ include "supabase.kong.fullname" . }}.{{ include "common.names.namespace" . }}.svc.{{ .Values.clusterDomain }}:{{ .Values.kong.service.ports.proxyHttp }}"
+  value: {{ include "supabase.api.baseHttp" . }}
 - name: SUPABASE_ANON_KEY
   valueFrom:
     secretKeyRef:
@@ -467,10 +452,6 @@ Return supabase kong connection details
 {{- end -}}
 
 
-
-{{/*
-Common labels added with kong
-*/}}
 {{/*
 Expand the name of the chart.
 */}}

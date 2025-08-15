@@ -1,5 +1,3 @@
-{{- /* Optional ExternalName service to allow using an internal host without custom Host header */ -}}
-{{- if and .Values.istio.createInternalService .Values.istio.internalHost }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -10,5 +8,5 @@ metadata:
     app.kubernetes.io/component: ingress
 spec:
   type: ExternalName
-  externalName: {{ .Values.istio.internalService.externalName | default "istio-ingress.istio-ingress.svc.cluster.local" }}
-{{- end }}
+  # externalName: {{ .Values.istio.internalService.externalName | default "istio-ingress.istio-ingress.svc.cluster.local" }}
+  externalName: {{ .Values.istio.internalService.externalName | default  }}

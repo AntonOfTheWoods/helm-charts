@@ -121,6 +121,12 @@ spec:
             - name: USER_FUNCTIONS_PATH
               value: {{ default "/functions" .Values.functions.userFunctionsPath }}
 
+            - name: SUPABASE_HOST_INTERNAL_URL
+              value: {{ include "supabase.api.baseHttp" . | quote }}
+
+            # - name: SUPABASE_PORT_INTERNAL
+            #   value: ???
+
             - name: SUPABASE_ANON_KEY
               valueFrom:
                 secretKeyRef:
