@@ -2596,7 +2596,7 @@ storage:
     IMGPROXY_URL: "http://{{ include "supabase.imgproxy.fullname" . }}:{{ .Values.imgproxy.service.ports.http }}"
     {{- end }}
     {{- if .Values.minio.enabled }}
-    GLOBAL_S3_ENDPOINT: http://{{ include "common.names.fullname" .Subcharts.minio }}:{{ default 9000 .Values.minio.service.ports.api }}
+    GLOBAL_S3_ENDPOINT: http://{{ include "common.names.fullname" .Subcharts.minio }}:{{ default 9000 .Values.minio.minioAPIPort }}
     STORAGE_BACKEND: "s3"
     {{- else }}
     STORAGE_BACKEND: "file"
