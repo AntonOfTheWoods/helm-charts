@@ -4,9 +4,6 @@ dependencies:
   version: 5.4.0
 - name: vector
   repository: https://helm.vector.dev
-  version: 0.44.0
-- name: common
-  repository: https://charts.bitnami.com/bitnami
-  version: 2.31.3
-digest: sha256:c0fb757c7bd4dd6dc5e26690bcace7c6dd96a0c361a4c981a7788a528eab2bae
-generated: "2025-08-11T21:17:33.653607583+08:00"
+  version: 0.45.0
+digest: sha256:18208d1dc2c0fff45313447dbe0e3f5ee73bb19c315185c6d384ae6f4092a79d
+generated: "2025-08-15T13:49:54.98718776+08:00"
