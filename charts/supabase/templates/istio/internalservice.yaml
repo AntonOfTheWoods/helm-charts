@@ -8,5 +8,4 @@ metadata:
     app.kubernetes.io/component: ingress
 spec:
   type: ExternalName
-  # externalName: {{ .Values.istio.internalService.externalName | default "istio-ingress.istio-ingress.svc.cluster.local" }}
   externalName: {{ .Values.istio.internalService.externalName | default  }}
