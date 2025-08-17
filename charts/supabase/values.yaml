@@ -1272,7 +1272,7 @@ istio:
   enabled: true
   # DNS hosts served by the Gateway; use dummy by default
   hosts:
-    - supabase.localhost
+    - supabase.local
   # Optional additional in-cluster host (no Host header override needed). If set, will be added to VirtualService hosts.
   internalHost: ""
   internalService:
@@ -1288,6 +1288,25 @@ istio:
     enabled: false
     # If using SIMPLE TLS, reference an existing secret on the ingressgateway
     credentialName: ""
+    ## Automated certificate issuance via cert-manager
+    ## When enabled, a cert-manager.io Certificate will be created in the istio-ingress namespace
+    ## and will populate the secret referenced by credentialName (or the default <fullname>-tls)
+    certManager:
+      enabled: false
+      issuerRef:
+        # Set the name of an Issuer or ClusterIssuer (required when enabled)
+        name: ""
+        # Usually "Issuer" or "ClusterIssuer" (defaults to ClusterIssuer)
+        kind: ClusterIssuer
+        # group: cert-manager.io  # rarely needed unless using a different group
+      # Renewal / lifetime tuning (optional)
+      duration: 2160h        # 90d
+      renewBefore: 360h      # 15d
+      privateKey:
+        algorithm: RSA
+        size: 2048
+      # Extra DNS names to add in addition to istio.hosts and istio.internalHost
+      extraDNSNames: []
   authz:
     enabled: false
     # Where to create policies (e.g., istio-system if selecting ingressgateway there)

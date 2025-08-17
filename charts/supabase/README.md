@@ -80,6 +80,31 @@ Adding the TLS parameter (where available) will cause the chart to generate HTTP
 
 [Learn more about Ingress controllers](https://kubernetes.io/docs/concepts/services-networking/ingress-controllers/).
 
+### Istio Gateway & automated TLS (cert-manager)
+
+This chart can expose Supabase via an Istio `Gateway` instead of (or alongside) a traditional Ingress. Enable it with:
+
+```
+istio.enabled=true
+```
+
+TLS can be provided by referencing an existing secret (`istio.tls.credentialName`) or automatically issued via cert‑manager by enabling:
+
+```
+istio:
+  tls:
+    enabled: true
+    certManager:
+      enabled: true
+      issuerRef:
+        name: letsencrypt-prod
+        kind: ClusterIssuer
+  hosts:
+    - supabase.example.com
+```
+
+When `certManager.enabled` is true a `Certificate` resource is created in the `istio-ingress` namespace whose secret name matches the derived or provided `credentialName`. HTTP->HTTPS redirects on port 80 can be enabled once the secret exists by setting `istio.redirectToTLS=true`.
+
 ### TLS secrets
 
 This chart facilitates the creation of TLS secrets for use with the Ingress controller (although this is not mandatory). There are several common use cases:

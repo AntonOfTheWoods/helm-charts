@@ -1,0 +1,44 @@
+{{- /*
+Automated TLS certificate for Istio Gateway using cert-manager.
+Creates a Certificate in the istio-ingress namespace when .Values.istio.tls.certManager.enabled.
+Secret name matches the credentialName used by the Gateway (or defaults to <fullname>-tls).
+*/}}
+{{- if and .Values.istio.enabled .Values.istio.tls.enabled .Values.istio.tls.certManager.enabled }}
+{{- $credentialName := ( .Values.istio.tls.credentialName | default (printf "%s-tls" (include "common.names.fullname" .)) ) -}}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ $credentialName }}
+  namespace: istio-ingress
+  labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ ) | nindent 4 }}
+    app.kubernetes.io/part-of: supabase
+    app.kubernetes.io/component: ingress
+spec:
+  secretName: {{ $credentialName }}
+  dnsNames:
+    {{- if .Values.istio.hosts }}
+    {{- range .Values.istio.hosts }}
+    - {{ . | quote }}
+    {{- end }}
+    {{- else }}
+    - "supabase.example.com"
+    {{- end }}
+    {{- range .Values.istio.tls.certManager.extraDNSNames }}
+    - {{ . | quote }}
+    {{- end }}
+  issuerRef:
+    name: {{ required "You must set istio.tls.certManager.issuerRef.name when enabling cert-manager certificate." .Values.istio.tls.certManager.issuerRef.name | quote }}
+    kind: {{ .Values.istio.tls.certManager.issuerRef.kind | default "ClusterIssuer" | quote }}
+    {{- if .Values.istio.tls.certManager.issuerRef.group }}
+    group: {{ .Values.istio.tls.certManager.issuerRef.group | quote }}
+    {{- end }}
+  {{- if .Values.istio.tls.certManager.duration }}
+  duration: {{ .Values.istio.tls.certManager.duration | quote }}
+  {{- end }}
+  {{- if .Values.istio.tls.certManager.renewBefore }}
+  renewBefore: {{ .Values.istio.tls.certManager.renewBefore | quote }}
+  {{- end }}
+  privateKey:
+    algorithm: {{ .Values.istio.tls.certManager.privateKey.algorithm | default "RSA" | quote }}
+    size: {{ .Values.istio.tls.certManager.privateKey.size | default 2048 }}
+{{- end }}

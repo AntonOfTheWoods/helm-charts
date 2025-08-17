@@ -20,7 +20,8 @@ spec:
     {{- end }}
     - {{ include "supabase.api.baseHost" . | quote }}
   gateways:
-    - {{ include "common.names.fullname" . }}-gateway
+    - istio-ingress/{{ include "common.names.fullname" . }}-gateway
+    # - {{ include "common.names.fullname" . }}-gateway
   http:
     # auth open endpoints
     - name: auth-v1-verify
