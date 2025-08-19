@@ -25,7 +25,7 @@ apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
   name: {{ include "common.names.fullname" . }}-allow-open
-  namespace: {{ (coalesce .Values.istio.authz.namespace (include "common.names.namespace" .)) | quote }}
+  namespace: {{ include "supabase.istio.ingress.namespace" . }}
   labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ ) | nindent 4 }}
     app.kubernetes.io/part-of: supabase
 spec:
@@ -49,7 +49,7 @@ apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
   name: {{ include "common.names.fullname" . }}-allow-protected
-  namespace: {{ (coalesce .Values.istio.authz.namespace (include "common.names.namespace" .)) | quote }}
+  namespace: {{ include "supabase.istio.ingress.namespace" . }}
   labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ ) | nindent 4 }}
     app.kubernetes.io/part-of: supabase
 spec:
@@ -82,7 +82,7 @@ apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
   name: {{ include "common.names.fullname" . }}-meta-admin-only
-  namespace: {{ (coalesce .Values.istio.authz.namespace (include "common.names.namespace" .)) | quote }}
+  namespace: {{ include "supabase.istio.ingress.namespace" . }}
   labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ ) | nindent 4 }}
     app.kubernetes.io/part-of: supabase
 spec:
@@ -109,7 +109,7 @@ apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
   name: {{ include "common.names.fullname" . }}-deny-all
-  namespace: {{ (coalesce .Values.istio.authz.namespace (include "common.names.namespace" .)) | quote }}
+  namespace: {{ include "supabase.istio.ingress.namespace" . }}
   labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ ) | nindent 4 }}
     app.kubernetes.io/part-of: supabase
 spec:
