@@ -1276,9 +1276,9 @@ istio:
   # Ingress gateway Service reference (namespace + service name) used by the Gateway and Certificate resources
   ingress:
     # @param istio.ingress.serviceName Name of the Istio ingressgateway Service
-    serviceName: istio-ingress
+    serviceName: supabase-gw
     # @param istio.ingress.namespace Namespace where the ingressgateway Service (and its TLS Secret) live
-    namespace: istio-ingress
+    namespace: supabase-gw
   # Internal in-cluster ExternalName Service pointing at the ingress gateway is always created with
   # the fixed name "supabase-internal" (not user-configurable). Its FQDN is used for internal API routing:
   # supabase-internal.<release-namespace>.svc.<clusterDomain>
@@ -1287,6 +1287,7 @@ istio:
   # If you run a custom ingressgateway deployment, set a selector here
   # gatewaySelector:
   #   istio: ingressgateway
+
   redirectToTLS: false
   tls:
     enabled: false
@@ -1314,8 +1315,7 @@ istio:
   authz:
     enabled: true
     # AuthorizationPolicies are always created in istio.ingress.namespace for this chart.
-    # Label selector that matches your ingress gateway deployment/pods (optional override)
-    selector: {}
+  # Uses istio.gatewaySelector (if set) for selecting ingress gateway pods; otherwise istio: ingressgateway
 
 ## @section Supabase Meta Parameters
 ##

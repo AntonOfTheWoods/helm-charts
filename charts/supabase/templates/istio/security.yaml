@@ -6,6 +6,7 @@ Minimal Istio AuthorizationPolicies to mirror Kong key-auth + ACL behavior using
 Keys are read from Secret `supabase-jwt` (anon-key, service-key), with optional overrides via .Values.jwt.
 */}}
 {{- if and .Values.istio.enabled .Values.istio.authz.enabled }}
+{{- include "supabase.istio.authz.selectorCheck" . }}
 {{- $ns := include "common.names.namespace" . -}}
 {{- $jwtSecret := lookup "v1" "Secret" $ns "supabase-jwt" -}}
 {{- $anonKey := "" -}}
@@ -35,8 +36,8 @@ metadata:
 spec:
   selector:
     matchLabels:
-      {{- if .Values.istio.authz.selector }}
-{{ toYaml .Values.istio.authz.selector | indent 6 }}
+      {{- if .Values.istio.gatewaySelector }}
+{{ toYaml .Values.istio.gatewaySelector | indent 6 }}
       {{- else }}
       istio: ingressgateway
       {{- end }}
@@ -60,8 +61,8 @@ metadata:
 spec:
   selector:
     matchLabels:
-      {{- if .Values.istio.authz.selector }}
-{{ toYaml .Values.istio.authz.selector | indent 6 }}
+      {{- if .Values.istio.gatewaySelector }}
+{{ toYaml .Values.istio.gatewaySelector | indent 6 }}
       {{- else }}
       istio: ingressgateway
       {{- end }}
@@ -93,8 +94,8 @@ metadata:
 spec:
   selector:
     matchLabels:
-      {{- if .Values.istio.authz.selector }}
-{{ toYaml .Values.istio.authz.selector | indent 6 }}
+      {{- if .Values.istio.gatewaySelector }}
+{{ toYaml .Values.istio.gatewaySelector | indent 6 }}
       {{- else }}
       istio: ingressgateway
       {{- end }}
