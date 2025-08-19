@@ -28,7 +28,8 @@ Return the proper Supabase API Public URL
 {{- end -}}
 
 {{- define "supabase.api.baseHost" -}}
-{{- printf "%s.%s.svc.%s" (.Values.istio.internalService.name | default "supabase-internal") (include "common.names.namespace" .) .Values.clusterDomain -}}
+{{- /* Fixed internal service name (not user-configurable) */ -}}
+{{- printf "supabase-internal.%s.svc.%s" (include "common.names.namespace" .) .Values.clusterDomain -}}
 {{- end -}}
 
 {{/* Istio ingress gateway service name */}}

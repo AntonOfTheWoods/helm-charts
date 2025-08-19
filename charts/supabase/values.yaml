@@ -1273,18 +1273,16 @@ istio:
   # DNS hosts served by the Gateway; use dummy by default
   hosts:
     - supabase.local
-  # Optional additional in-cluster host (no Host header override needed). If set, will be added to VirtualService hosts.
-  internalHost: ""
   # Ingress gateway Service reference (namespace + service name) used by the Gateway and Certificate resources
   ingress:
     # @param istio.ingress.serviceName Name of the Istio ingressgateway Service
     serviceName: istio-ingress
     # @param istio.ingress.namespace Namespace where the ingressgateway Service (and its TLS Secret) live
     namespace: istio-ingress
-  internalService:
-    name: supabase-internal
-    # ExternalName is always derived from istio.ingress.* and clusterDomain (not user-overridable):
-    # <serviceName>.<namespace>.svc.<clusterDomain>
+  # Internal in-cluster ExternalName Service pointing at the ingress gateway is always created with
+  # the fixed name "supabase-internal" (not user-configurable). Its FQDN is used for internal API routing:
+  # supabase-internal.<release-namespace>.svc.<clusterDomain>
+  # and resolves (via ExternalName) to <istio.ingress.serviceName>.<istio.ingress.namespace>.svc.<clusterDomain>
 
   # If you run a custom ingressgateway deployment, set a selector here
   # gatewaySelector:
@@ -1311,7 +1309,7 @@ istio:
       privateKey:
         algorithm: RSA
         size: 2048
-      # Extra DNS names to add in addition to istio.hosts and istio.internalHost
+      # Extra DNS names to add in addition to istio.hosts
       extraDNSNames: []
   authz:
     enabled: false
