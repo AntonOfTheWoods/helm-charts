@@ -1293,7 +1293,7 @@ istio:
     # If using SIMPLE TLS, reference an existing secret on the ingressgateway
     credentialName: ""
     ## Automated certificate issuance via cert-manager
-  ## When enabled, a cert-manager.io Certificate will be created in the istio.ingress.namespace
+    ## When enabled, a cert-manager.io Certificate will be created in the istio.ingress.namespace
     ## and will populate the secret referenced by credentialName (or the default <fullname>-tls)
     certManager:
       enabled: false
@@ -1312,7 +1312,7 @@ istio:
       # Extra DNS names to add in addition to istio.hosts
       extraDNSNames: []
   authz:
-    enabled: false
+    enabled: true
     # Where to create policies (e.g., istio-system if selecting ingressgateway there)
     namespace: "istio-ingress"  # You can change this; by default examples use istio.ingress.namespace
     # Label selector that matches your ingress gateway deployment/pods

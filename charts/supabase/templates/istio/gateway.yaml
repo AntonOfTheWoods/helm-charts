@@ -24,12 +24,8 @@ spec:
         name: http
         protocol: HTTP
       hosts:
-        {{- if .Values.istio.hosts }}
-        {{- toYaml .Values.istio.hosts | nindent 8 }}
-        {{- else }}
-        - "supabase.example.com"
-        {{- end }}
-      - {{ include "supabase.api.baseHost" . | quote }}
+        {{- include "supabase.istio.validatedHosts" . | nindent 8 }}
+        - {{ include "supabase.api.baseHost" . | quote }}
       {{- if .Values.istio.redirectToTLS }}
       tls:
         httpsRedirect: true
@@ -40,11 +36,7 @@ spec:
         name: https
         protocol: HTTPS
       hosts:
-        {{- if .Values.istio.hosts }}
-        {{- toYaml .Values.istio.hosts | nindent 8 }}
-        {{- else }}
-        - "supabase.example.com"
-        {{- end }}
+        {{- include "supabase.istio.validatedHosts" . | nindent 8 }}
       tls:
         mode: SIMPLE
         credentialName: {{ .Values.istio.tls.credentialName | default (printf "%s-tls" (include "common.names.fullname" .)) | quote }}

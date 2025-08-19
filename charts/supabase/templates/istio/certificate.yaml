@@ -16,13 +16,8 @@ metadata:
 spec:
   secretName: {{ $credentialName }}
   dnsNames:
-    {{- if .Values.istio.hosts }}
-    {{- range .Values.istio.hosts }}
-    - {{ . | quote }}
-    {{- end }}
-    {{- else }}
-    - "supabase.example.com"
-    {{- end }}
+    {{- /* reuse same validation helper output (list items already quoted with dash) */}}
+    {{- include "supabase.istio.validatedHosts" . | nindent 4 }}
     {{- range .Values.istio.tls.certManager.extraDNSNames }}
     - {{ . | quote }}
     {{- end }}

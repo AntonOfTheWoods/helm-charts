@@ -53,6 +53,17 @@ Return the proper Supabase API Public URL
 {{- printf "http://%s" (include "supabase.api.baseHost" .) -}}
 {{- end -}}
 
+{{/* Validate that at least one istio.hosts entry is provided */}}
+{{- define "supabase.istio.validatedHosts" -}}
+{{- $h := .Values.istio.hosts | default (list) -}}
+{{- if not (gt (len $h) 0) -}}
+{{- fail "You must set at least one host in istio.hosts (values.yaml)" -}}
+{{- end -}}
+{{- range $h }}
+- {{ . | quote }}
+{{- end -}}
+{{- end -}}
+
 {{/*
 Return the proper Supabase auth image name
 */}}

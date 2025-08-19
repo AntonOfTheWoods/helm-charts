@@ -13,11 +13,7 @@ metadata:
     app.kubernetes.io/component: ingress
 spec:
   hosts:
-    {{- if .Values.istio.hosts }}
-    {{- toYaml .Values.istio.hosts | nindent 4 }}
-    {{- else }}
-    - "supabase.example.com"
-    {{- end }}
+    {{- include "supabase.istio.validatedHosts" . | nindent 4 }}
     - {{ include "supabase.api.baseHost" . | quote }}
   gateways:
     - {{ include "supabase.istio.ingress.namespace" . }}/{{ include "common.names.fullname" . }}-gateway
