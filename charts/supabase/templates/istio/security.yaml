@@ -20,7 +20,11 @@ Keys are read from Secret `supabase-jwt` (anon-key, service-key), with optional 
 {{- else if $jwtSecret -}}
   {{- $svcKey = (index $jwtSecret.data "service-key" | default "" | b64dec) -}}
 {{- end -}}
+{{- if and .Values.istio.authz.enabled (not (or $anonKey $svcKey)) -}}
+{{- fail "istio.authz.enabled but neither anon nor service key could be resolved (set jwt.anonKey/jwt.serviceKey or provide supabase-jwt secret)" -}}
+{{- end -}}
 ---
+
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
@@ -41,9 +45,10 @@ spec:
     - to:
         - operation:
             paths: ["/auth/v1/verify*", "/auth/v1/callback*", "/auth/v1/authorize*"]
-  - to:
-    - operation:
-      paths: ["/functions/v1/*", "/storage/v1/*"]
+    - to:
+        - operation:
+            paths: ["/functions/v1/*", "/storage/v1/*"]
+
 ---
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
@@ -105,24 +110,9 @@ spec:
             - {{ $svcKey | quote }}
             {{- end }}
 ---
-apiVersion: security.istio.io/v1
-kind: AuthorizationPolicy
-metadata:
-  name: {{ include "common.names.fullname" . }}-deny-all
-  namespace: {{ include "supabase.istio.ingress.namespace" . }}
-  labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ ) | nindent 4 }}
-    app.kubernetes.io/part-of: supabase
-spec:
-  selector:
-    matchLabels:
-      {{- if .Values.istio.authz.selector }}
-{{ toYaml .Values.istio.authz.selector | indent 6 }}
-      {{- else }}
-      istio: ingressgateway
-      {{- end }}
-  action: DENY
-  rules:
-    - to:
-        - operation:
-            paths: ["/*"]
+{{/*
+NOTE: An explicit deny-all policy was removed. In Istio, if any ALLOW AuthorizationPolicy
+selects a workload, the default becomes deny-by-default for unmatched requests. Therefore
+the allow-open and allow-protected policies already restrict traffic; an additional global
+DENY (which is evaluated first) would unconditionally block even allowed paths. */}}
 {{- end }}
