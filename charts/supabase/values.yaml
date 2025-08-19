@@ -1275,10 +1275,16 @@ istio:
     - supabase.local
   # Optional additional in-cluster host (no Host header override needed). If set, will be added to VirtualService hosts.
   internalHost: ""
+  # Ingress gateway Service reference (namespace + service name) used by the Gateway and Certificate resources
+  ingress:
+    # @param istio.ingress.serviceName Name of the Istio ingressgateway Service
+    serviceName: istio-ingress
+    # @param istio.ingress.namespace Namespace where the ingressgateway Service (and its TLS Secret) live
+    namespace: istio-ingress
   internalService:
     name: supabase-internal
-    # Target fully-qualified service name of the ingress gateway service.
-    externalName: istio-ingress.istio-ingress.svc.cluster.local
+    # ExternalName is always derived from istio.ingress.* and clusterDomain (not user-overridable):
+    # <serviceName>.<namespace>.svc.<clusterDomain>
 
   # If you run a custom ingressgateway deployment, set a selector here
   # gatewaySelector:
@@ -1289,7 +1295,7 @@ istio:
     # If using SIMPLE TLS, reference an existing secret on the ingressgateway
     credentialName: ""
     ## Automated certificate issuance via cert-manager
-    ## When enabled, a cert-manager.io Certificate will be created in the istio-ingress namespace
+  ## When enabled, a cert-manager.io Certificate will be created in the istio.ingress.namespace
     ## and will populate the secret referenced by credentialName (or the default <fullname>-tls)
     certManager:
       enabled: false
@@ -1310,7 +1316,7 @@ istio:
   authz:
     enabled: false
     # Where to create policies (e.g., istio-system if selecting ingressgateway there)
-    namespace: "istio-ingress"
+    namespace: "istio-ingress"  # You can change this; by default examples use istio.ingress.namespace
     # Label selector that matches your ingress gateway deployment/pods
     selector: {}
 

@@ -103,7 +103,7 @@ istio:
     - supabase.example.com
 ```
 
-When `certManager.enabled` is true a `Certificate` resource is created in the `istio-ingress` namespace whose secret name matches the derived or provided `credentialName`. HTTP->HTTPS redirects on port 80 can be enabled once the secret exists by setting `istio.redirectToTLS=true`.
+When `certManager.enabled` is true a `Certificate` resource is created in the `istio.ingress.namespace` (default `istio-ingress`) whose secret name matches the derived or provided `credentialName`. HTTP->HTTPS redirects on port 80 can be enabled once the secret exists by setting `istio.redirectToTLS=true`.
 
 ### TLS secrets
 

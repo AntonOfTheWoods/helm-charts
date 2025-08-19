@@ -1,6 +1,6 @@
 {{- /*
 Automated TLS certificate for Istio Gateway using cert-manager.
-Creates a Certificate in the istio-ingress namespace when .Values.istio.tls.certManager.enabled.
+Creates a Certificate in the configurable istio.ingress.namespace when .Values.istio.tls.certManager.enabled.
 Secret name matches the credentialName used by the Gateway (or defaults to <fullname>-tls).
 */}}
 {{- if and .Values.istio.enabled .Values.istio.tls.enabled .Values.istio.tls.certManager.enabled }}
@@ -9,7 +9,7 @@ apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: {{ $credentialName }}
-  namespace: istio-ingress
+  namespace: {{ include "supabase.istio.ingress.namespace" . }}
   labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ ) | nindent 4 }}
     app.kubernetes.io/part-of: supabase
     app.kubernetes.io/component: ingress

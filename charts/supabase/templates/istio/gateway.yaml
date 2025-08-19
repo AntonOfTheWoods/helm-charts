@@ -7,7 +7,7 @@ kind: Gateway
 metadata:
   name: {{ include "common.names.fullname" . }}-gateway
   # namespace: {{ include "common.names.namespace" . | quote }}
-  namespace: istio-ingress
+  namespace: {{ include "supabase.istio.ingress.namespace" . }}
   labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ ) | nindent 4 }}
     app.kubernetes.io/part-of: supabase
     app.kubernetes.io/component: ingress
@@ -35,7 +35,7 @@ spec:
         {{- end }}
       {{- if .Values.istio.redirectToTLS }}
       {{- $credentialName := ( .Values.istio.tls.credentialName | default (printf "%s-tls" (include "common.names.fullname" .)) ) -}}
-      {{- $secret := lookup "v1" "Secret" "istio-ingress" $credentialName -}}
+  {{- $secret := lookup "v1" "Secret" (include "supabase.istio.ingress.namespace" .) $credentialName -}}
       {{- if $secret }}
       tls:
         httpsRedirect: true

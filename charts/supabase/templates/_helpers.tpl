@@ -31,6 +31,23 @@ Return the proper Supabase API Public URL
 {{- printf "%s.%s.svc.%s" (.Values.istio.internalService.name | default "supabase-internal") (include "common.names.namespace" .) .Values.clusterDomain -}}
 {{- end -}}
 
+{{/* Istio ingress gateway service name */}}
+{{- define "supabase.istio.ingress.serviceName" -}}
+{{- default "istio-ingress" .Values.istio.ingress.serviceName -}}
+{{- end -}}
+
+{{/* Istio ingress gateway namespace */}}
+{{- define "supabase.istio.ingress.namespace" -}}
+{{- default "istio-ingress" .Values.istio.ingress.namespace -}}
+{{- end -}}
+
+{{/* Fully qualified ingress gateway service DNS */}}
+{{- define "supabase.istio.ingress.fqdn" -}}
+{{- $svc := include "supabase.istio.ingress.serviceName" . -}}
+{{- $ns := include "supabase.istio.ingress.namespace" . -}}
+{{- printf "%s.%s.svc.%s" $svc $ns .Values.clusterDomain -}}
+{{- end -}}
+
 {{- define "supabase.api.baseHttp" -}}
 {{- printf "http://%s" (include "supabase.api.baseHost" .) -}}
 {{- end -}}
