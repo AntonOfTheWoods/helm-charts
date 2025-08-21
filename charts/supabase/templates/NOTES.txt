@@ -24,3 +24,16 @@ The following elements have been deployed
 {{- if .Values.studio.enabled }}
   - studio
 {{- end }}
+
+Istio (if enabled):
+{{- if .Values.istio.enabled }}
+  Gateway: {{ include "supabase.istio.ingress.namespace" . }}/{{ include "common.names.fullname" . }}-gateway
+  VirtualService: {{ include "common.names.namespace" . }}/{{ include "common.names.fullname" . }}-vs
+  AuthorizationPolicies: {{ include "supabase.istio.ingress.namespace" . }}/{{ include "common.names.fullname" . }}-deny-protected, -deny-meta
+
+Useful commands (note the fully-qualified resource when listing):
+  kubectl get gateway.networking.istio.io -n {{ include "supabase.istio.ingress.namespace" . }}
+  kubectl describe gateway.networking.istio.io {{ include "common.names.fullname" . }}-gateway -n {{ include "supabase.istio.ingress.namespace" . }}
+  kubectl get virtualservice.networking.istio.io -n {{ include "common.names.namespace" . }}
+  kubectl get authorizationpolicy.security.istio.io -n {{ include "supabase.istio.ingress.namespace" . }}
+{{- end }}

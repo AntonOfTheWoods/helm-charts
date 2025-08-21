@@ -19,6 +19,28 @@ spec:
     - {{ include "supabase.istio.ingress.namespace" . }}/{{ include "common.names.fullname" . }}-gateway
     # - {{ include "common.names.fullname" . }}-gateway
   http:
+    # functions (moved to top for deterministic match). Match both with and without trailing slash
+    - name: functions-v1
+      match:
+        - uri:
+            exact: "/functions/v1"
+        - uri:
+            prefix: "/functions/v1/"
+      route:
+        - destination:
+            host: {{ include "supabase.functions.fullname" . }}.{{ include "common.names.namespace" . }}.svc.{{ .Values.clusterDomain }}
+            port:
+              number: {{ .Values.functions.service.ports.http }}
+      headers:
+        response:
+          add:
+            x-functions-route: "matched"
+      corsPolicy:
+        allowOrigins: [{ exact: "*" }]
+        allowMethods: ["GET", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"]
+        allowHeaders: ["*"]
+        maxAge: "24h"
+        allowCredentials: true
     # auth open endpoints
     - name: auth-v1-verify
       match:
@@ -162,23 +184,5 @@ spec:
               number: {{ .Values.meta.service.ports.http }}
       rewrite:
         uri: "/"
-    # functions
-    - name: functions-v1
-      match:
-        - uri:
-            prefix: "/functions/v1/"
-      route:
-        - destination:
-            host: {{ include "supabase.functions.fullname" . }}.{{ include "common.names.namespace" . }}.svc.{{ .Values.clusterDomain }}
-            port:
-              number: {{ .Values.functions.service.ports.http }}
-      rewrite:
-        uri: "/"
-      corsPolicy:
-        allowOrigins: [{ exact: "*" }]
-        allowMethods: ["GET", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"]
-        allowHeaders: ["*"]
-        maxAge: "24h"
-        allowCredentials: true
 
 {{- end }}

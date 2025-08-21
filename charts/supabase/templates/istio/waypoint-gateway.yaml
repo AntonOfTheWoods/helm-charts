@@ -1,0 +1,46 @@
+{{- /*
+Creates a waypoint Gateway (Gateway API) for ambient L7 processing when .Values.istio.ambient.waypoint.enabled
+Notes:
+- Assumes Gateway API CRDs are installed (gateways.gateway.networking.k8s.io, etc.). If not present, this will fail apply.
+- Istiod will reconcile this into a managed waypoint Deployment/Service.
+- Namespace enrollment (label istio.io/use-waypoint=<name>) is optional and controlled via values.
+*/}}
+{{- if and .Values.istio.enabled .Values.istio.ambient.enabled .Values.istio.ambient.waypoint.enabled }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: {{ .Values.istio.ambient.waypoint.name }}
+  namespace: {{ include "common.names.namespace" . }}
+  labels:
+    istio.io/waypoint-for: {{ .Values.istio.ambient.waypoint.trafficType | default "service" }}
+    app.kubernetes.io/part-of: supabase
+    {{- if .Values.commonLabels }}
+    {{- range $k, $v := .Values.commonLabels }}
+    {{ $k }}: {{ $v | quote }}
+    {{- end }}
+    {{- end }}
+spec:
+  gatewayClassName: istio-waypoint
+  listeners:
+    - name: mesh
+      port: 15008
+      protocol: HBONE
+      {{- if .Values.istio.ambient.waypoint.crossNamespace.allowRoutes }}
+      allowedRoutes:
+        namespaces:
+          from: All
+      {{- end }}
+{{- if and .Values.istio.ambient.waypoint.enrollNamespace .Values.istio.ambient.waypoint.manageNamespace }}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ include "common.names.namespace" . }}
+  labels:
+    istio.io/dataplane-mode: ambient
+    istio.io/use-waypoint: {{ .Values.istio.ambient.waypoint.name }}
+{{- end }}
+{{- if and .Values.istio.ambient.waypoint.enrollNamespace (not .Values.istio.ambient.waypoint.manageNamespace) }}
+# NOTE: Namespace enrollment requested but manageNamespace=false; chart will NOT label existing namespace.
+{{- end }}
+{{- end }}

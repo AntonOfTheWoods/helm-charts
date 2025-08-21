@@ -49,12 +49,6 @@ Return the proper Supabase API Public URL
 {{- printf "%s.%s.svc.%s" $svc $ns .Values.clusterDomain -}}
 {{- end -}}
 
-{{/* Fail fast if authz enabled but no custom gatewaySelector provided (warn about global impact) */}}
-{{- define "supabase.istio.authz.selectorCheck" -}}
-{{- if and .Values.istio.enabled .Values.istio.authz.enabled (not .Values.istio.gatewaySelector) -}}
-{{- fail "istio.authz.enabled without istio.gatewaySelector; this would scope policies to ALL ingressgateway pods (istio: ingressgateway). Set istio.gatewaySelector for isolation." -}}
-{{- end -}}
-{{- end -}}
 
 {{- define "supabase.api.baseHttp" -}}
 {{- printf "http://%s" (include "supabase.api.baseHost" .) -}}

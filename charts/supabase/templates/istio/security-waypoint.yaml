@@ -1,0 +1,83 @@
+{{- /*
+AuthorizationPolicies for waypoint mode (.Values.istio.authz.mode == "waypoint").
+These enforce protected paths at the destination waypoint instead of the ingress gateway.
+Assumptions:
+- Namespace/workloads are enrolled to use the waypoint (label istio.io/use-waypoint=<name> on namespace or services/pods).
+- The waypoint processes traffic for services (trafficType=service or all).
+Policy strategy:
+- DENY requests to protected Supabase API paths unless apikey header matches anon or service key (same logic as gateway version).
+- Separate stricter DENY for /pg requiring service key.
+*/}}
+{{- if and .Values.istio.enabled .Values.istio.authz.enabled (eq (default "gateway" .Values.istio.authz.mode) "waypoint") }}
+{{- $ns := include "common.names.namespace" . -}}
+{{- $jwtSecret := lookup "v1" "Secret" $ns "supabase-jwt" -}}
+{{- $anonKey := "" -}}
+{{- if .Values.jwt.anonKey -}}
+  {{- $anonKey = .Values.jwt.anonKey -}}
+{{- else if $jwtSecret -}}
+  {{- $anonKey = (index $jwtSecret.data "anon-key" | default "" | b64dec) -}}
+{{- end -}}
+{{- $svcKey := "" -}}
+{{- if .Values.jwt.serviceKey -}}
+  {{- $svcKey = .Values.jwt.serviceKey -}}
+{{- else if $jwtSecret -}}
+  {{- $svcKey = (index $jwtSecret.data "service-key" | default "" | b64dec) -}}
+{{- end -}}
+{{- if (not $anonKey) -}}
+{{- fail "Required anon key missing for waypoint authz: set .Values.jwt.anonKey or create Secret supabase-jwt with key 'anon-key'" -}}
+{{- end -}}
+{{- if (not $svcKey) -}}
+{{- fail "Required service key missing for waypoint authz: set .Values.jwt.serviceKey or create Secret supabase-jwt with key 'service-key'" -}}
+{{- end -}}
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: {{ include "common.names.fullname" . }}-wp-deny-protected
+  namespace: {{ $ns }}
+  labels:
+    app.kubernetes.io/part-of: supabase
+spec:
+  targetRefs:
+    - kind: Namespace
+      name: {{ $ns }}
+  action: DENY
+  rules:
+    - to:
+        - operation:
+            notMethods: ["OPTIONS"]
+            paths:
+              - "/rest/v1/"
+              - "/rest/v1/*"
+              - "/realtime/v1/"
+              - "/realtime/v1/*"
+      when:
+        - key: request.headers[apikey]
+          notValues:
+            - {{ $anonKey | quote }}
+            - {{ $svcKey | quote }}
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: {{ include "common.names.fullname" . }}-wp-deny-meta
+  namespace: {{ $ns }}
+  labels:
+    app.kubernetes.io/part-of: supabase
+spec:
+  targetRefs:
+    - kind: Namespace
+      name: {{ $ns }}
+  action: DENY
+  rules:
+    - to:
+        - operation:
+            notMethods: ["OPTIONS"]
+            paths:
+              - "/pg/"
+              - "/pg/*"
+      when:
+        - key: request.headers[apikey]
+          notValues:
+            - {{ $svcKey | quote }}
+{{- end }}

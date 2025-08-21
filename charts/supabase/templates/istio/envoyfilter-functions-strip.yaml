@@ -1,0 +1,71 @@
+{{- /*
+EnvoyFilter to strip /functions/v1/ prefix for functions route when cluster Istio version lacks uriRegexRewrite.
+Applies at ingress gateway HTTP filter chain before routing.
+Safe defaults: handles case where .Values.istio.functions is absent (older release values with --reuse-values).
+*/}}
+{{- $istio := .Values.istio | default dict -}}
+{{- $functions := $istio.functions | default dict -}}
+{{- $strip := default false $functions.stripPrefix -}}
+{{- $prefix := default "/functions/v1/" $functions.prefix -}}
+{{- $debug := default false $functions.debugHeaders -}}  # retained but no longer gates header emission
+{{- if and $istio.enabled $strip }}
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: {{ include "common.names.fullname" . }}-functions-strip-prefix
+  namespace: {{ include "supabase.istio.ingress.namespace" . }}
+  labels:
+    app.kubernetes.io/part-of: supabase
+spec:
+  workloadSelector:
+    labels:
+      {{- if .Values.istio.gatewaySelector }}
+{{ toYaml .Values.istio.gatewaySelector | indent 6 }}
+      {{- else }}
+      istio: ingressgateway
+      {{- end }}
+  configPatches:
+    - applyTo: HTTP_FILTER
+      match:
+        context: GATEWAY
+        listener:
+          filterChain:
+            filter:
+              name: envoy.filters.network.http_connection_manager
+              subFilter:
+                name: envoy.filters.http.router
+      patch:
+        operation: INSERT_BEFORE
+        value:
+          name: envoy.filters.http.lua
+          typed_config:
+            "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
+            inlineCode: |
+              local orig_path = nil
+              local new_path = nil
+              function envoy_on_request(handle)
+                local prefix = "{{ $prefix }}"
+                local path = handle:headers():get(":path") or ""
+                orig_path = path
+                if path:sub(1, #prefix) == prefix then
+                  local remainder = path:sub(#prefix + 1)
+                  if remainder == "" then
+                    new_path = "/"
+                  else
+                    if remainder:sub(1,1) == "/" then
+                      new_path = remainder
+                    else
+                      new_path = "/" .. remainder
+                    end
+                  end
+                  handle:headers():replace(":path", new_path)
+                else
+                  new_path = path -- no change
+                end
+              end
+              function envoy_on_response(handle)
+                handle:headers():add("x-functions-filter", "active")
+                if orig_path then handle:headers():add("x-orig-path", orig_path) end
+                if new_path then handle:headers():add("x-new-path", new_path) end
+              end
+{{- end }}
