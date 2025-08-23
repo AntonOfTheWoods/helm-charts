@@ -52,7 +52,7 @@ metadata:
   labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ctx ) | nindent 4 }}
     app.kubernetes.io/part-of: supabase
 spec:
-  parentRefs:
+  targetRefs:
     - group: gateway.networking.k8s.io
       kind: Gateway
       name: {{ $parentGwName }}
@@ -62,10 +62,13 @@ spec:
   rules:
     - to:
         - operation:
+            hosts:
+              {{- include "supabase.istio.validatedHosts" . | nindent 14 }}
             paths:
               - "/auth/v1/verify"
               - "/auth/v1/callback"
               - "/auth/v1/authorize"
+              - "/wtf"
 ---
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
@@ -75,7 +78,7 @@ metadata:
   labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ctx ) | nindent 4 }}
     app.kubernetes.io/part-of: supabase
 spec:
-  parentRefs:
+  targetRefs:
     - group: gateway.networking.k8s.io
       kind: Gateway
       name: {{ $parentGwName }}
@@ -97,6 +100,8 @@ spec:
           {{- end }}
       to:
         - operation:
+            hosts:
+              {{- include "supabase.istio.validatedHosts" . | nindent 14 }}
             paths:
               - "/auth/v1/*"
               - "/rest/v1/*"
@@ -112,7 +117,7 @@ metadata:
   labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ctx ) | nindent 4 }}
     app.kubernetes.io/part-of: supabase
 spec:
-  parentRefs:
+  targetRefs:
     - group: gateway.networking.k8s.io
       kind: Gateway
       name: {{ $parentGwName }}
@@ -129,6 +134,8 @@ spec:
           {{- end }}
       to:
         - operation:
+            hosts:
+              {{- include "supabase.istio.validatedHosts" . | nindent 14 }}
             paths:
               - "/pg/*"
 {{- end }}

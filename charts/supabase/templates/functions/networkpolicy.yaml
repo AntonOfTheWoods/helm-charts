@@ -58,6 +58,31 @@ spec:
     - ports:
         - port: {{ .Values.functions.containerPorts.http }}
         - port: {{ .Values.functions.service.ports.http }}
+        {{- /* Istio Ambient mesh requires HBONE (15008) tunnel and (optionally) 15021 admin for health probes.
+              When istio.ambient.enabled is true we expose these here so ztunnel/waypoint can reach the workload.
+              Harden example (restrict only to istio-system ztunnel) – instead of using this broad rule, remove these
+              two ports here and add to functions.networkPolicy.extraIngress:
+                extraIngress:
+                  - ports:
+                      - port: 15008
+                        protocol: TCP
+                      - port: 15021
+                        protocol: TCP
+                    from:
+                      - namespaceSelector:
+                          matchLabels:
+                            kubernetes.io/metadata.name: istio-system
+                        # (Optional) further narrow with podSelector for ztunnel if labeled
+                        # podSelector:
+                        #   matchLabels:
+                        #     app: ztunnel
+        */}}
+        {{- if and .Values.istio.enabled (dig "ambient" "enabled" false .Values.istio) }}
+        - port: 15008
+          protocol: TCP
+        - port: 15021
+          protocol: TCP
+        {{- end }}
       {{- if not .Values.functions.networkPolicy.allowExternal }}
       from:
         - podSelector:

@@ -1270,9 +1270,14 @@ dbSSL: "disable"
 ## Istio ingress configuration (replaces Kong)
 istio:
   enabled: true
+  ambient:
+    # When true, enable adjustments for Istio Ambient Mesh (ztunnel/waypoint) such as adding HBONE (15008) and admin (15021)
+    # ports to NetworkPolicies so that mesh components can reach workloads. Disable if not using ambient mesh.
+    enabled: true
   # DNS hosts served by the Gateway; use dummy by default
   hosts:
     - supabase.local
+
   # Ingress gateway Service reference (namespace + service name) used by the Gateway and Certificate resources
   ingress:
     # @param istio.ingress.serviceName Name of the Istio ingressgateway Service
@@ -1280,14 +1285,16 @@ istio:
     # @param istio.ingress.namespace Namespace where the ingressgateway Service (and its TLS Secret) live
     namespace: istio-ingress
 
-  gatewaySelector:
-    istio: ingressgateway
+  # gatewaySelector:
+  #   istio: ingressgateway
 
-  redirectToTLS: false
+  # redirectToTLS: false
+
   # When true, create a separate HTTPRoute that redirects all HTTP traffic to HTTPS (308).
   redirect:
     enabled: false
     statusCode: 308
+
   tls:
     enabled: false
     # If using SIMPLE TLS, reference an existing secret on the ingressgateway
@@ -1328,14 +1335,16 @@ istio:
       namespaces:
         # @param istio.gateway.allowedRoutes.namespaces.from Allowed namespace scope for HTTPRoutes (All|Same|Selector)
         from: All
-  # Enable bootstrap creation of a shared gateway if create=false and an existing one is not found.
-  bootstrapShared: false
-  # Authorization (mirrors prior Kong key-auth + ACL). Disabled by default.
-  # Authorization is always enforced (mirrors prior Kong key-auth + ACL) using waypoint-level policies.
-  # No toggle provided; if istio.enabled is true policies will be rendered.
-  authz:
-    # Reserved for future extensibility (currently only 'waypoint'). Changing this has no effect.
-    mode: waypoint
+
+  # # Enable bootstrap creation of a shared gateway if create=false and an existing one is not found.
+  # bootstrapShared: false
+
+  # # Authorization (mirrors prior Kong key-auth + ACL). Disabled by default.
+  # # Authorization is always enforced (mirrors prior Kong key-auth + ACL) using waypoint-level policies.
+  # # No toggle provided; if istio.enabled is true policies will be rendered.
+  # authz:
+  #   # Reserved for future extensibility (currently only 'waypoint'). Changing this has no effect.
+  #   mode: waypoint
 
 ## @section Supabase Meta Parameters
 ##
