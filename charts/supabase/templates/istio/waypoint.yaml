@@ -1,0 +1,36 @@
+{{- /*
+Ambient waypoint proxy (L7) for the namespace.
+
+Istio implements a waypoint via a Gateway (Gateway API) with:
+  gatewayClassName: istio-waypoint
+  metadata.labels["istio.io/waypoint-for"] = service|workload|all (default service)
+This file always renders a namespace-level (service) waypoint when istio.enabled.
+
+NOTE: You must label the namespace to actually use it:
+  kubectl label namespace <ns> istio.io/use-waypoint={{ include "common.names.fullname" . }}-waypoint --overwrite
+
+Without that label, the waypoint is inert and traffic stays L4-only (ztunnel).
+*/ -}}
+{{- if .Values.istio.enabled }}
+{{- $autoGwName := printf "%s-gateway" (include "common.names.fullname" .) -}}
+{{- $createdGwName := .Values.istio.gateway.name | default $autoGwName -}}
+{{- $parentGwName := ternary $createdGwName (.Values.istio.gateway.existing.name) ( .Values.istio.gateway.create ) -}}
+{{- $parentGwNamespace := (ternary (.Values.istio.gateway.namespace | default (include "supabase.istio.ingress.namespace" .)) (.Values.istio.gateway.existing.namespace) (.Values.istio.gateway.create)) -}}
+{{- if and (not .Values.istio.gateway.create) (or (empty .Values.istio.gateway.existing.name) (empty .Values.istio.gateway.existing.namespace)) }}
+{{- fail "istio.gateway.create is false; you must set istio.gateway.existing.name and istio.gateway.existing.namespace" }}
+{{- end }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: {{ $parentGwName }}-waypoint
+  namespace: {{ $parentGwNamespace }}
+  labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" . ) | nindent 4 }}
+    istio.io/waypoint-for: service
+    app.kubernetes.io/part-of: supabase
+spec:
+  gatewayClassName: istio-waypoint
+  listeners:
+    - name: mesh
+      port: 15008
+      protocol: HBONE
+{{- end }}

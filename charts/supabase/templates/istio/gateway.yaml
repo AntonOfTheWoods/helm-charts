@@ -1,44 +1,42 @@
-{{- /*
-Istio Gateway to replace Kong Ingress. Uses dummy host; customize via .Values.istio.hosts
-*/}}
-{{- if .Values.istio.enabled }}
-apiVersion: networking.istio.io/v1
+{{- if and .Values.istio.enabled .Values.istio.gateway.create }}
+{{- /* Compute name (allow override) */ -}}
+{{- $autoName := printf "%s-gateway" (include "common.names.fullname" .) -}}
+{{- $gwName := .Values.istio.gateway.name | default $autoName -}}
+apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
-  name: {{ include "common.names.fullname" . }}-gateway
-  namespace: {{ include "supabase.istio.ingress.namespace" . }}
+  name: {{ $gwName }}
+  namespace: {{ .Values.istio.gateway.namespace | default (include "supabase.istio.ingress.namespace" .) }}
   labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ ) | nindent 4 }}
     app.kubernetes.io/part-of: supabase
     app.kubernetes.io/component: ingress
 spec:
-  selector:
-    {{- /* default Istio ingressgateway selector; override in values if needed */}}
-    {{- if .Values.istio.gatewaySelector }}
-{{ toYaml .Values.istio.gatewaySelector | indent 4 }}
-    {{- else }}
-    istio: ingressgateway
-    {{- end }}
-  servers:
-    - port:
-        number: 80
-        name: http
-        protocol: HTTP
-      hosts:
-        {{- include "supabase.istio.validatedHosts" . | nindent 8 }}
-        - {{ include "supabase.api.baseHost" . | quote }}
-      {{- if .Values.istio.redirectToTLS }}
-      tls:
-        httpsRedirect: true
+  gatewayClassName: istio
+  listeners:
+    {{- $hosts := .Values.istio.hosts | default (list) }}
+    - name: http
+      {{- if eq (len $hosts) 1 }}
+      hostname: {{ index $hosts 0 | quote }}
       {{- end }}
+      port: 80
+      protocol: HTTP
+      allowedRoutes:
+        namespaces:
+          from: {{ .Values.istio.gateway.allowedRoutes.namespaces.from | default "All" | quote }}
     {{- if .Values.istio.tls.enabled }}
-    - port:
-        number: 443
-        name: https
-        protocol: HTTPS
-      hosts:
-        {{- include "supabase.istio.validatedHosts" . | nindent 8 }}
+    - name: https
+      {{- if eq (len $hosts) 1 }}
+      hostname: {{ index $hosts 0 | quote }}
+      {{- end }}
+      port: 443
+      protocol: HTTPS
       tls:
-        mode: SIMPLE
-        credentialName: {{ .Values.istio.tls.credentialName | default (printf "%s-tls" (include "common.names.fullname" .)) | quote }}
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: {{ .Values.istio.tls.credentialName | default (printf "%s-tls" (include "common.names.fullname" .)) }}
+      allowedRoutes:
+        namespaces:
+          from: {{ .Values.istio.gateway.allowedRoutes.namespaces.from | default "All" | quote }}
     {{- end }}
 {{- end }}

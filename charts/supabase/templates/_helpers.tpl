@@ -28,7 +28,7 @@ Return the proper Supabase API Public URL
 {{- end -}}
 
 {{- define "supabase.api.baseHost" -}}
-{{- /* Fixed internal service name (not user-configurable) */ -}}
+{{- /* Internal base host FQDN always built from clusterDomain value */ -}}
 {{- printf "supabase-internal.%s.svc.%s" (include "common.names.namespace" .) .Values.clusterDomain -}}
 {{- end -}}
 

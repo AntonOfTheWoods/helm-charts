@@ -1,0 +1,272 @@
+{{- if .Values.istio.enabled }}
+{{- /* Determine parent Gateway reference: either the one we create or an existing shared one */ -}}
+{{- $autoGwName := printf "%s-gateway" (include "common.names.fullname" .) -}}
+{{- $createdGwName := .Values.istio.gateway.name | default $autoGwName -}}
+{{- $parentGwName := ternary $createdGwName (.Values.istio.gateway.existing.name) ( .Values.istio.gateway.create ) -}}
+{{- $parentGwNamespace := (ternary (.Values.istio.gateway.namespace | default (include "supabase.istio.ingress.namespace" .)) (.Values.istio.gateway.existing.namespace) (.Values.istio.gateway.create)) -}}
+{{- if and (not .Values.istio.gateway.create) (or (empty .Values.istio.gateway.existing.name) (empty .Values.istio.gateway.existing.namespace)) }}
+{{- fail "istio.gateway.create is false; you must set istio.gateway.existing.name and istio.gateway.existing.namespace" }}
+{{- end }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ include "common.names.fullname" . }}-api
+  namespace: {{ include "common.names.namespace" . }}
+  labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ ) | nindent 4 }}
+    app.kubernetes.io/part-of: supabase
+    app.kubernetes.io/component: ingress
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: {{ $parentGwName }}
+      namespace: {{ $parentGwNamespace }}
+  hostnames:
+    {{- include "supabase.istio.validatedHosts" . | nindent 4 }}
+    - {{ include "supabase.api.baseHost" . | quote }}
+  rules:
+    # functions (strip /functions/v1/)
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /functions/v1/
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            add:
+              - name: Access-Control-Allow-Origin
+                value: "*"
+              - name: Access-Control-Allow-Methods
+                value: "GET,POST,OPTIONS,PUT,PATCH,DELETE"
+              - name: Access-Control-Allow-Headers
+                value: "*"
+              - name: Access-Control-Max-Age
+                value: "86400"
+              - name: Access-Control-Allow-Credentials
+                value: "true"
+      backendRefs:
+        - name: {{ include "supabase.functions.fullname" . }}
+          port: {{ .Values.functions.service.ports.http }}
+
+    # auth fixed endpoints
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /auth/v1/verify
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: /verify
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            add:
+              - name: Access-Control-Allow-Origin
+                value: "*"
+              - name: Access-Control-Allow-Methods
+                value: "GET,POST,OPTIONS"
+              - name: Access-Control-Allow-Headers
+                value: "*"
+              - name: Access-Control-Max-Age
+                value: "86400"
+              - name: Access-Control-Allow-Credentials
+                value: "true"
+      backendRefs:
+        - name: {{ include "supabase.auth.fullname" . }}
+          port: {{ .Values.auth.service.ports.http }}
+
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /auth/v1/callback
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: /callback
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            add:
+              - name: Access-Control-Allow-Origin
+                value: "*"
+              - name: Access-Control-Allow-Methods
+                value: "GET,POST,OPTIONS"
+              - name: Access-Control-Allow-Headers
+                value: "*"
+              - name: Access-Control-Max-Age
+                value: "86400"
+              - name: Access-Control-Allow-Credentials
+                value: "true"
+      backendRefs:
+        - name: {{ include "supabase.auth.fullname" . }}
+          port: {{ .Values.auth.service.ports.http }}
+
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /auth/v1/authorize
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: /authorize
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            add:
+              - name: Access-Control-Allow-Origin
+                value: "*"
+              - name: Access-Control-Allow-Methods
+                value: "GET,POST,OPTIONS"
+              - name: Access-Control-Allow-Headers
+                value: "*"
+              - name: Access-Control-Max-Age
+                value: "86400"
+              - name: Access-Control-Allow-Credentials
+                value: "true"
+      backendRefs:
+        - name: {{ include "supabase.auth.fullname" . }}
+          port: {{ .Values.auth.service.ports.http }}
+
+    # auth wildcard (strip /auth/v1/)
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /auth/v1/
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            add:
+              - name: Access-Control-Allow-Origin
+                value: "*"
+              - name: Access-Control-Allow-Methods
+                value: "GET,POST,OPTIONS,PUT,PATCH,DELETE"
+              - name: Access-Control-Allow-Headers
+                value: "*"
+              - name: Access-Control-Max-Age
+                value: "86400"
+              - name: Access-Control-Allow-Credentials
+                value: "true"
+      backendRefs:
+        - name: {{ include "supabase.auth.fullname" . }}
+          port: {{ .Values.auth.service.ports.http }}
+
+    # rest (strip /rest/v1/, remove headers)
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /rest/v1/
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            remove: ["apikey", "authorization"]
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            add:
+              - name: Access-Control-Allow-Origin
+                value: "*"
+              - name: Access-Control-Allow-Methods
+                value: "GET,POST,OPTIONS,PUT,PATCH,DELETE"
+              - name: Access-Control-Allow-Headers
+                value: "*"
+              - name: Access-Control-Max-Age
+                value: "86400"
+              - name: Access-Control-Allow-Credentials
+                value: "true"
+      backendRefs:
+        - name: {{ include "supabase.rest.fullname" . }}
+          port: {{ .Values.rest.service.ports.http }}
+
+    # realtime (rewrite to /socket)
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /realtime/v1/
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: /socket
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            add:
+              - name: Access-Control-Allow-Origin
+                value: "*"
+              - name: Access-Control-Allow-Methods
+                value: "GET,POST,OPTIONS"
+              - name: Access-Control-Allow-Headers
+                value: "*"
+              - name: Access-Control-Max-Age
+                value: "86400"
+              - name: Access-Control-Allow-Credentials
+                value: "true"
+      backendRefs:
+        - name: {{ include "supabase.realtime.fullname" . }}
+          port: {{ .Values.realtime.service.ports.http }}
+
+    # storage (strip /storage/v1/, add Forwarded header)
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /storage/v1/
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            add:
+              - name: Forwarded
+                value: "proto=https"
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            add:
+              - name: Access-Control-Allow-Origin
+                value: "*"
+              - name: Access-Control-Allow-Methods
+                value: "GET,POST,OPTIONS,PUT,PATCH,DELETE"
+              - name: Access-Control-Allow-Headers
+                value: "*"
+              - name: Access-Control-Max-Age
+                value: "86400"
+              - name: Access-Control-Allow-Credentials
+                value: "true"
+      backendRefs:
+        - name: {{ include "supabase.storage.fullname" . }}
+          port: {{ .Values.storage.service.ports.http }}
+
+    # pg-meta (strip /pg/)
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /pg/
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+      backendRefs:
+        - name: {{ include "supabase.meta.fullname" . }}
+          port: {{ .Values.meta.service.ports.http }}
+{{- end }}

@@ -1,0 +1,28 @@
+{{- if and .Values.istio.enabled .Values.istio.redirect.enabled .Values.istio.gateway.existing.name }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ include "common.names.fullname" . }}-redirect
+  namespace: {{ include "common.names.namespace" . }}
+  labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ ) | nindent 4 }}
+    app.kubernetes.io/part-of: supabase
+    app.kubernetes.io/component: ingress
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: {{ .Values.istio.gateway.existing.name }}
+      namespace: {{ .Values.istio.gateway.existing.namespace | default (include "supabase.istio.ingress.namespace" .) }}
+  hostnames:
+    {{- include "supabase.istio.validatedHosts" . | nindent 4 }}
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      filters:
+        - type: RequestRedirect
+          requestRedirect:
+            scheme: https
+            statusCode: {{ .Values.istio.redirect.statusCode | default 308 }}
+{{- end }}

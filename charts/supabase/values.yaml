@@ -1279,16 +1279,15 @@ istio:
     serviceName: istio-ingress
     # @param istio.ingress.namespace Namespace where the ingressgateway Service (and its TLS Secret) live
     namespace: istio-ingress
-  # Internal in-cluster ExternalName Service pointing at the ingress gateway is always created with
-  # the fixed name "supabase-internal" (not user-configurable). Its FQDN is used for internal API routing:
-  # supabase-internal.<release-namespace>.svc.<clusterDomain>
-  # and resolves (via ExternalName) to <istio.ingress.serviceName>.<istio.ingress.namespace>.svc.<clusterDomain>
 
-  # If you run a custom ingressgateway deployment, set a selector here
   gatewaySelector:
     istio: ingressgateway
 
   redirectToTLS: false
+  # When true, create a separate HTTPRoute that redirects all HTTP traffic to HTTPS (308).
+  redirect:
+    enabled: false
+    statusCode: 308
   tls:
     enabled: false
     # If using SIMPLE TLS, reference an existing secret on the ingressgateway
@@ -1312,41 +1311,31 @@ istio:
         size: 2048
       # Extra DNS names to add in addition to istio.hosts
       extraDNSNames: []
+  gateway:
+    # When true, this chart creates its own dedicated Gateway (and thus a dedicated LoadBalancer Service).
+    # Set to false to attach the HTTPRoute to an existing shared Gateway you manage elsewhere,
+    # avoiding a second LoadBalancer (required when sharing ports 80/443 with other workloads).
+    create: true
+    # Optional override for created gateway name (defaults to <release>-gateway)
+    name: ""
+    # Namespace where the created gateway should live (defaults to ingress namespace template)
+    namespace: ""
+    # Reference to an existing gateway (used only when create=false)
+    existing:
+      name: ""
+      namespace: ""
+    allowedRoutes:
+      namespaces:
+        # @param istio.gateway.allowedRoutes.namespaces.from Allowed namespace scope for HTTPRoutes (All|Same|Selector)
+        from: All
+  # Enable bootstrap creation of a shared gateway if create=false and an existing one is not found.
+  bootstrapShared: false
+  # Authorization (mirrors prior Kong key-auth + ACL). Disabled by default.
+  # Authorization is always enforced (mirrors prior Kong key-auth + ACL) using waypoint-level policies.
+  # No toggle provided; if istio.enabled is true policies will be rendered.
   authz:
-    # Edge authorization (DENY policies). Set to false to disable AuthorizationPolicy creation.
-    enabled: true
-    # AuthorizationPolicies are always created in istio.ingress.namespace for this chart.
-    # Uses istio.gatewaySelector (if set) for selecting ingress gateway pods; otherwise istio: ingressgateway
-    # @param istio.authz.mode Where to enforce L7 authz: "gateway" (ingress DENY) or "waypoint" (ambient destination enforcement)
-    mode: gateway
-
-  # Functions ingress behavior
-  functions:
-    # @param istio.functions.stripPrefix Use an EnvoyFilter to strip the /functions/v1/ prefix (for clusters without uriRegexRewrite support)
-    stripPrefix: true
-    # @param istio.functions.prefix Prefix to remove when stripPrefix enabled (must end with /)
-    prefix: "/functions/v1/"
-  # @param istio.functions.debugHeaders Emit x-orig-path and x-new-path response headers for debugging prefix stripping
-  debugHeaders: true
-
-  # Ambient mesh & waypoint (L7) settings. This chart does NOT install Istio itself.
-  ambient:
-    # @param istio.ambient.enabled Enable assumptions for ambient mode (documentation/NOTES hints). Chart does not label namespaces automatically unless enrollNamespace true.
-    enabled: false
-    waypoint:
-      # @param istio.ambient.waypoint.enabled Create a waypoint Gateway (gateway.networking.k8s.io) for this namespace/workloads
-      enabled: false
-      # @param istio.ambient.waypoint.name Waypoint Gateway name
-      name: waypoint
-      # @param istio.ambient.waypoint.trafficType One of: service | workload | all | none
-      trafficType: service
-      # @param istio.ambient.waypoint.crossNamespace.allowRoutes Allow cross-namespace routes (sets allowedRoutes.namespaces.from=All)
-      crossNamespace:
-        allowRoutes: false
-      # @param istio.ambient.waypoint.enrollNamespace Label the release namespace with istio.io/use-waypoint=<name> (requires manageNamespace true or Helm permission to create Namespace manifest)
-      enrollNamespace: false
-      # @param istio.ambient.waypoint.manageNamespace If true, emit a Namespace manifest to apply labels (may conflict if namespace pre-exists outside Helm)
-      manageNamespace: false
+    # Reserved for future extensibility (currently only 'waypoint'). Changing this has no effect.
+    mode: waypoint
 
 ## @section Supabase Meta Parameters
 ##
