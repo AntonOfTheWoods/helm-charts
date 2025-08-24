@@ -23,7 +23,7 @@ spec:
       namespace: {{ $parentGwNamespace }}
   hostnames:
     {{- include "supabase.istio.validatedHosts" . | nindent 4 }}
-    # - {{ include "supabase.api.baseHost" . | quote }}
+    - {{ include "supabase.api.baseHost" . | quote }}
   rules:
     # functions (strip /functions/v1/)
     - matches:

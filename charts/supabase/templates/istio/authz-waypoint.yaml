@@ -64,11 +64,11 @@ spec:
         - operation:
             hosts:
               {{- include "supabase.istio.validatedHosts" . | nindent 14 }}
+              - {{ include "supabase.api.baseHost" . | quote }}
             paths:
               - "/auth/v1/verify"
               - "/auth/v1/callback"
               - "/auth/v1/authorize"
-              - "/wtf"
 ---
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
@@ -102,6 +102,7 @@ spec:
         - operation:
             hosts:
               {{- include "supabase.istio.validatedHosts" . | nindent 14 }}
+              - {{ include "supabase.api.baseHost" . | quote }}
             paths:
               - "/auth/v1/*"
               - "/rest/v1/*"
@@ -136,6 +137,7 @@ spec:
         - operation:
             hosts:
               {{- include "supabase.istio.validatedHosts" . | nindent 14 }}
+              - {{ include "supabase.api.baseHost" . | quote }}
             paths:
               - "/pg/*"
 {{- end }}

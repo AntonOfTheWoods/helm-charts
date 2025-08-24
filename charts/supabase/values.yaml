@@ -405,7 +405,7 @@ analytics:
   image:
     registry: docker.io
     repository: supabase/logflare
-    tag: 1.12.5
+    tag: 1.14.2
     pullPolicy: IfNotPresent
     digest: ""
     pullSecrets: []
@@ -1270,10 +1270,6 @@ dbSSL: "disable"
 ## Istio ingress configuration (replaces Kong)
 istio:
   enabled: true
-  ambient:
-    # When true, enable adjustments for Istio Ambient Mesh (ztunnel/waypoint) such as adding HBONE (15008) and admin (15021)
-    # ports to NetworkPolicies so that mesh components can reach workloads. Disable if not using ambient mesh.
-    enabled: true
   # DNS hosts served by the Gateway; use dummy by default
   hosts:
     - supabase.local

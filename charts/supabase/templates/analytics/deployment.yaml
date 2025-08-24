@@ -106,6 +106,9 @@ spec:
             - name: LOGFLARE_MIN_CLUSTER_SIZE
               value: "1"
 
+            # LOGFLARE_PUBLIC_ACCESS_TOKEN: ${LOGFLARE_PUBLIC_ACCESS_TOKEN}
+            # LOGFLARE_PRIVATE_ACCESS_TOKEN: ${LOGFLARE_PRIVATE_ACCESS_TOKEN}
+
             - name: DB_USER
               value: {{ include "supabase.analyticsdb.database.user" . | quote }}
             - name: DB_HOST

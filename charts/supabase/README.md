@@ -1,6 +1,8 @@
-<!--- app-name: Supabase -->
+# Package for Supabase
 
-# Bitnami package for Supabase
+# FIXME:
+# TODO: BROKEN!!!
+- label the vector service with `istio.io/use-waypoint: {{ printf "%s-waypoint" (include "common.names.fullname" .) | quote }}`
 
 Supabase is an open source Firebase alternative. Provides all the necessary backend features to build your application in a scalable way. Uses PostgreSQL as datastore.
 
@@ -11,7 +13,7 @@ Trademarks: This software listing is packaged by Bitnami. The respective tradema
 ## TL;DR
 
 ```console
-helm install my-release oci://registry-1.docker.io/bitnamicharts/supabase
+helm install my-release ??? # FIXME:
 ```
 
 ## Introduction
@@ -20,8 +22,8 @@ This chart bootstraps a [Supabase](https://www.supabase.com/) deployment in a [K
 
 ## Prerequisites
 
-- Kubernetes 1.23+
-- Helm 3.8.0+
+- Kubernetes 1.33+
+- Helm 3.18.0+
 - PV provisioner support in the underlying infrastructure
 - ReadWriteMany volumes for deployment scaling
 
