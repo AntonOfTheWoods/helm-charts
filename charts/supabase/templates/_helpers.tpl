@@ -404,6 +404,48 @@ Return the proper image name (for the init container volume-permissions image)
 {{- end -}}
 
 {{/*
+Resolve current JWT anon key for literal template use (e.g. Istio AuthorizationPolicy header matching).
+Order:
+    1. Secret data (name: include "supabase.jwt.secretName"; key: include "supabase.jwt.anonSecretKey") decoded.
+    2. Fallback to .Values.jwt.anonKey if secret/key missing.
+Returns raw string (may be empty).
+*/}}
+{{- define "supabase.jwt.resolvedAnonKey" -}}
+{{- $ns := include "common.names.namespace" . -}}
+{{- $val := "" -}}
+{{- $sec := lookup "v1" "Secret" $ns (include "supabase.jwt.secretName" .) -}}
+{{- if $sec -}}
+    {{- $raw := index $sec.data (include "supabase.jwt.anonSecretKey" .) | default "" -}}
+    {{- if $raw }}{{- $val = $raw | b64dec -}}{{- end -}}
+{{- end -}}
+{{- if not $val -}}
+    {{- $val = default "" .Values.jwt.anonKey -}}
+{{- end -}}
+{{- print $val -}}
+{{- end -}}
+
+{{/*
+Resolve current JWT service key (aka service role key) for literal template use.
+Order:
+    1. Secret data (name: include "supabase.jwt.secretName"; key: include "supabase.jwt.serviceSecretKey") decoded.
+    2. Fallback to .Values.jwt.serviceKey if secret/key missing.
+Returns raw string (may be empty).
+*/}}
+{{- define "supabase.jwt.resolvedServiceKey" -}}
+{{- $ns := include "common.names.namespace" . -}}
+{{- $val := "" -}}
+{{- $sec := lookup "v1" "Secret" $ns (include "supabase.jwt.secretName" .) -}}
+{{- if $sec -}}
+    {{- $raw := index $sec.data (include "supabase.jwt.serviceSecretKey" .) | default "" -}}
+    {{- if $raw }}{{- $val = $raw | b64dec -}}{{- end -}}
+{{- end -}}
+{{- if not $val -}}
+    {{- $val = default "" .Values.jwt.serviceKey -}}
+{{- end -}}
+{{- print $val -}}
+{{- end -}}
+
+{{/*
 Return the proper Docker Image Registry Secret Names
 */}}
 {{- define "supabase.imagePullSecrets" -}}

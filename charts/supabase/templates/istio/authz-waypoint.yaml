@@ -25,25 +25,47 @@ If a key is still empty after lookup its rule will render without values so it n
 {{- fail "istio.gateway.create is false; you must set istio.gateway.existing.name and istio.gateway.existing.namespace" }}
 {{- end }}
 {{- $ctx := . }}
-{{- $ns := include "common.names.namespace" . }}
-{{- $anonKey := (default "" .Values.jwt.anonKey) }}
-{{- $serviceKey := (default "" .Values.jwt.serviceKey) }}
-{{- if and (not $anonKey) .Values.global.jwt.existingSecret }}
-  {{- $secret := lookup "v1" "Secret" $ns .Values.global.jwt.existingSecret }}
-  {{- if $secret }}
-    {{- $raw := index $secret.data (.Values.global.jwt.existingSecretAnonKey) | default "" }}
-    {{- if $raw }}{{- $anonKey = $raw | b64dec }}{{- end }}
-  {{- end }}
-{{- end }}
-{{- if and (not $serviceKey) .Values.global.jwt.existingSecret }}
-  {{- $secret := lookup "v1" "Secret" $ns .Values.global.jwt.existingSecret }}
-  {{- if $secret }}
-    {{- $raw := index $secret.data (.Values.global.jwt.existingSecretServiceKey) | default "" }}
-    {{- if $raw }}{{- $serviceKey = $raw | b64dec }}{{- end }}
-  {{- end }}
-{{- end }}
-{{- $haveAnon := gt (len (trim $anonKey)) 0 }}
-{{- $haveService := gt (len (trim $serviceKey)) 0 }}
+{{- $anonKey := include "supabase.jwt.resolvedAnonKey" . -}}
+{{- $serviceKey := include "supabase.jwt.resolvedServiceKey" . -}}
+
+{{- /* TODO: fixme? We need these two for the case for first deploy - actually it MUST be deployed twice to
+  get the actual values */ -}}
+{{- $haveAnon := gt (len (trim $anonKey)) 0 -}}
+{{- $haveService := gt (len (trim $serviceKey)) 0 -}}
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: {{ include "common.names.fullname" . }}-preflight
+  namespace: {{ $parentGwNamespace }}
+  labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ctx ) | nindent 4 }}
+    app.kubernetes.io/part-of: supabase
+    Values.jwt.anonKey: {{ .Values.jwt.anonKey }}
+    Values.jwt.serviceKey: {{ .Values.jwt.serviceKey }}
+    Values.global.jwt.existingSecret: {{ .Values.global.jwt.existingSecret }}
+    Values.global.jwt.existingSecretKey: {{ .Values.global.jwt.existingSecretKey }}
+    Values.global.jwt.existingSecretAnonKey: {{ .Values.global.jwt.existingSecretAnonKey }}
+    Values.global.jwt.existingSecretServiceKey: {{ .Values.global.jwt.existingSecretServiceKey }}
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: {{ $parentGwName }}
+  action: ALLOW
+  rules:
+    - to:
+        - operation:
+            methods: ["OPTIONS"]
+            hosts:
+              {{- include "supabase.istio.validatedHosts" . | nindent 14 }}
+              - {{ include "supabase.api.baseHost" . | quote }}
+            paths:
+              - "/auth/v1/*"
+              - "/rest/v1/*"
+              - "/realtime/v1/*"
+              - "/storage/v1/*"
+              - "/pg/*"
+              - "/functions/v1/*"
+---
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
@@ -69,6 +91,7 @@ spec:
               - "/auth/v1/verify"
               - "/auth/v1/callback"
               - "/auth/v1/authorize"
+              - "/functions/v1/*"
 ---
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
@@ -108,7 +131,6 @@ spec:
               - "/rest/v1/*"
               - "/realtime/v1/*"
               - "/storage/v1/*"
-              - "/functions/v1/*"
 ---
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy

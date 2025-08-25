@@ -1256,6 +1256,8 @@ imgproxy:
     dataSource: {}
 
 minio:
+  gateway:
+    enabled: false
   enabled: false
   buckets:
     - name: stub
