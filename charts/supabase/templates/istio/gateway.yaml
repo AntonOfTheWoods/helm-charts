@@ -13,6 +13,8 @@ metadata:
 spec:
   gatewayClassName: istio
   listeners:
+    # FIXME: I need to add the internalservice.yaml here!!!
+
     {{- $hosts := .Values.istio.hosts | default (list) }}
     - name: http
       {{- if eq (len $hosts) 1 }}

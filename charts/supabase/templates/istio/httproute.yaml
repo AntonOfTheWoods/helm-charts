@@ -38,7 +38,7 @@ spec:
               replacePrefixMatch: /
         - type: ResponseHeaderModifier
           responseHeaderModifier:
-            add:
+            set:
               - name: Access-Control-Allow-Origin
                 value: "*"
               - name: Access-Control-Allow-Methods
@@ -66,7 +66,7 @@ spec:
               replaceFullPath: /verify
         - type: ResponseHeaderModifier
           responseHeaderModifier:
-            add:
+            set:
               - name: Access-Control-Allow-Origin
                 value: "*"
               - name: Access-Control-Allow-Methods
@@ -93,7 +93,7 @@ spec:
               replaceFullPath: /callback
         - type: ResponseHeaderModifier
           responseHeaderModifier:
-            add:
+            set:
               - name: Access-Control-Allow-Origin
                 value: "*"
               - name: Access-Control-Allow-Methods
@@ -120,7 +120,7 @@ spec:
               replaceFullPath: /authorize
         - type: ResponseHeaderModifier
           responseHeaderModifier:
-            add:
+            set:
               - name: Access-Control-Allow-Origin
                 value: "*"
               - name: Access-Control-Allow-Methods
@@ -148,7 +148,7 @@ spec:
               replacePrefixMatch: /
         - type: ResponseHeaderModifier
           responseHeaderModifier:
-            add:
+            set:
               - name: Access-Control-Allow-Origin
                 value: "*"
               - name: Access-Control-Allow-Methods
@@ -179,7 +179,7 @@ spec:
             remove: ["apikey", "authorization"]
         - type: ResponseHeaderModifier
           responseHeaderModifier:
-            add:
+            set:
               - name: Access-Control-Allow-Origin
                 value: "*"
               - name: Access-Control-Allow-Methods
@@ -207,7 +207,7 @@ spec:
               replaceFullPath: /socket
         - type: ResponseHeaderModifier
           responseHeaderModifier:
-            add:
+            set:
               - name: Access-Control-Allow-Origin
                 value: "*"
               - name: Access-Control-Allow-Methods
@@ -240,7 +240,7 @@ spec:
                 value: "proto=https"
         - type: ResponseHeaderModifier
           responseHeaderModifier:
-            add:
+            set:
               - name: Access-Control-Allow-Origin
                 value: "*"
               - name: Access-Control-Allow-Methods

@@ -1276,12 +1276,12 @@ istio:
   hosts:
     - supabase.local
 
-  # Ingress gateway Service reference (namespace + service name) used by the Gateway and Certificate resources
-  ingress:
-    # @param istio.ingress.serviceName Name of the Istio ingressgateway Service
-    serviceName: istio-ingress
-    # @param istio.ingress.namespace Namespace where the ingressgateway Service (and its TLS Secret) live
-    namespace: istio-ingress
+  # # Ingress gateway Service reference (namespace + service name) used by the Gateway and Certificate resources
+  # ingress:
+  #   # @param istio.ingress.serviceName Name of the Istio ingressgateway Service
+  #   serviceName: istio-ingress
+  #   # @param istio.ingress.namespace Namespace where the ingressgateway Service (and its TLS Secret) live
+  #   namespace: istio-ingress
 
   # gatewaySelector:
   #   istio: ingressgateway
@@ -1316,6 +1316,7 @@ istio:
         size: 2048
       # Extra DNS names to add in addition to istio.hosts
       extraDNSNames: []
+
   gateway:
     # When true, this chart creates its own dedicated Gateway (and thus a dedicated LoadBalancer Service).
     # Set to false to attach the HTTPRoute to an existing shared Gateway you manage elsewhere,

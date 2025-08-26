@@ -39,12 +39,6 @@ metadata:
   namespace: {{ $parentGwNamespace }}
   labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ctx ) | nindent 4 }}
     app.kubernetes.io/part-of: supabase
-    Values.jwt.anonKey: {{ .Values.jwt.anonKey }}
-    Values.jwt.serviceKey: {{ .Values.jwt.serviceKey }}
-    Values.global.jwt.existingSecret: {{ .Values.global.jwt.existingSecret }}
-    Values.global.jwt.existingSecretKey: {{ .Values.global.jwt.existingSecretKey }}
-    Values.global.jwt.existingSecretAnonKey: {{ .Values.global.jwt.existingSecretAnonKey }}
-    Values.global.jwt.existingSecretServiceKey: {{ .Values.global.jwt.existingSecretServiceKey }}
 spec:
   targetRefs:
     - group: gateway.networking.k8s.io

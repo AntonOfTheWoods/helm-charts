@@ -32,17 +32,50 @@ Return the proper Supabase API Public URL
 {{- printf "supabase-internal.%s.svc.%s" (include "common.names.namespace" .) .Values.clusterDomain -}}
 {{- end -}}
 
-{{/* Istio ingress gateway service name */}}
+{{/*
+Resolve the Service name backing the Gateway used for Supabase ingress.
+Legacy fields (istio.ingress.*) have been replaced by istio.gateway.*. We keep the helper name for
+backwards compatibility with existing template calls (internalservice, etc.).
+
+Rules:
+    - When istio.gateway.create=true: service name derives from provided gateway.name or <release>-gateway
+        and namespace from gateway.namespace (or legacy istio.ingress.namespace, else defaults to "istio-ingress").
+    - When istio.gateway.create=false: require istio.gateway.existing.{name,namespace} (fail-fast if missing).
+*/}}
 {{- define "supabase.istio.ingress.serviceName" -}}
-{{- default "istio-ingress" .Values.istio.ingress.serviceName -}}
+{{- if .Values.istio.gateway.create -}}
+    {{- /* For a created gateway, Istio managed controller names the Service <gateway-name>-istio */ -}}
+    {{- $autoGw := printf "%s-gateway" (include "common.names.fullname" .) -}}
+    {{- $gwName := .Values.istio.gateway.name | default $autoGw -}}
+    {{- printf "%s-istio" $gwName -}}
+{{- else -}}
+    {{- if or (empty .Values.istio.gateway.existing.name) (empty .Values.istio.gateway.existing.namespace) -}}
+        {{- fail "istio.gateway.create is false; you must set istio.gateway.existing.name and istio.gateway.existing.namespace" -}}
+    {{- end -}}
+    {{- /* For an existing shared gateway assume same naming pattern unless explicitly overridden via existing.serviceName */ -}}
+    {{- default (printf "%s-istio" .Values.istio.gateway.existing.name) .Values.istio.gateway.existing.serviceName -}}
+{{- end -}}
 {{- end -}}
 
-{{/* Istio ingress gateway namespace */}}
+{{/* Resolve namespace for the Gateway (see serviceName helper for rules) */}}
 {{- define "supabase.istio.ingress.namespace" -}}
-{{- default "istio-ingress" .Values.istio.ingress.namespace -}}
+{{- if .Values.istio.gateway.create -}}
+    {{- if .Values.istio.gateway.namespace -}}
+        {{- .Values.istio.gateway.namespace -}}
+    {{- else if .Values.istio.ingress.namespace -}} {{/* legacy override */}}
+        {{- .Values.istio.ingress.namespace -}}
+    {{- else -}}
+        istio-ingress
+    {{- end -}}
+{{- else -}}
+    {{- if or (empty .Values.istio.gateway.existing.name) (empty .Values.istio.gateway.existing.namespace) -}}
+        {{- fail "istio.gateway.create is false; you must set istio.gateway.existing.name and istio.gateway.existing.namespace" -}}
+    {{- end -}}
+    {{- .Values.istio.gateway.existing.namespace -}}
+{{- end -}}
 {{- end -}}
 
-{{/* Fully qualified ingress gateway service DNS */}}
+{{/* Fully qualified Gateway Service DNS */}}
 {{- define "supabase.istio.ingress.fqdn" -}}
 {{- $svc := include "supabase.istio.ingress.serviceName" . -}}
 {{- $ns := include "supabase.istio.ingress.namespace" . -}}
