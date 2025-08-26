@@ -1,0 +1,20 @@
+{{- if .Values.istio.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "common.names.fullname" . }}-preflight-shim
+  namespace: {{ include "common.names.namespace" . }}
+  labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ ) | nindent 4 }}
+    app.kubernetes.io/part-of: supabase
+    app.kubernetes.io/component: preflight-shim
+    {{- if and .Values.istio.enabled (dig "ambient" "enabled" false .Values.istio) }}
+    istio.io/use-waypoint: {{ printf "%s-waypoint" (include "common.names.fullname" .) | quote }}
+    {{- end }}
+spec:
+  selector:
+    app.kubernetes.io/name: {{ include "common.names.fullname" . }}-preflight-shim
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+{{- end }}
