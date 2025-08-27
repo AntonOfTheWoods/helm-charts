@@ -1275,6 +1275,10 @@ istio:
   # DNS hosts served by the Gateway; use dummy by default
   hosts:
     - supabase.local
+  # CORS customization (preflight shim). Add extra allowed request headers beyond the built-in list.
+  cors:
+    # @param istio.cors.extraAllowedHeaders Additional headers to include in Access-Control-Allow-Headers for preflight.
+    extraAllowedHeaders: []
 
   # # Ingress gateway Service reference (namespace + service name) used by the Gateway and Certificate resources
   # ingress:
