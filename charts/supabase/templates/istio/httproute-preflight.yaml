@@ -4,7 +4,7 @@
 {{- $parentGwName := ternary $createdGwName (.Values.istio.gateway.existing.name) ( .Values.istio.gateway.create ) -}}
 {{- $parentGwNamespace := (ternary (.Values.istio.gateway.namespace | default (include "supabase.istio.ingress.namespace" .)) (.Values.istio.gateway.existing.namespace) (.Values.istio.gateway.create)) -}}
 {{- /* Enumerated allowed headers list (base + user extras) */ -}}
-{{- $baseAllowed := list "apikey" "authorization" "content-type" "x-client-info" "x-supabase-api-version" "Accept" "Accept-Version" "Content-Length" "Content-MD5" "Content-Type" "Date" "X-Auth-Token" "X-Build-Number" "X-Request-Id" -}}
+{{- $baseAllowed := list "apikey" "authorization" "x-client-info" "x-supabase-api-version" "Accept" "Accept-Version" "Content-Length" "Content-MD5" "Content-Type" "Date" "X-Auth-Token" "X-Build-Number" "X-Request-Id" -}}
 {{- $extra := .Values.istio.cors.extraAllowedHeaders | default list -}}
 {{- $allAllowed := concat $baseAllowed $extra -}}
 apiVersion: gateway.networking.k8s.io/v1
