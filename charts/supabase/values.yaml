@@ -377,7 +377,6 @@ jwt:
     annotations:
       helm.sh/hook: post-install
       helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
-      # This should be executed after the minio provisioning job
       helm.sh/hook-weight: "10"
     ## @param jwt.autoGenerate.podLabels Additional pod labels
     ## Ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
@@ -1255,12 +1254,12 @@ imgproxy:
     selector: {}
     dataSource: {}
 
-minio:
-  gateway:
-    enabled: false
+s3:
   enabled: false
-  buckets:
-    - name: stub
+  host: minio
+  port: 80
+  useSSL: false
+
 ## @param publicURL Supabase API public URL
 ##
 publicURL: ""
@@ -1269,12 +1268,59 @@ publicURL: ""
 ##
 dbSSL: "disable"
 
+gateway:
+  # When true, this chart creates its own dedicated Gateway (and thus a dedicated LoadBalancer Service).
+  # Set to false to attach the HTTPRoute to an existing shared Gateway you manage elsewhere,
+  # avoiding a second LoadBalancer (required when sharing ports 80/443 with other workloads).
+  create: true
+  # Optional override for created gateway name (defaults to <release>-gateway)
+  name: ""
+  # DNS hosts served by the Gateway; use dummy by default
+  gatewayClassName: "istio"
+  hosts:
+    - supabase.local
+  extraHosts: []
+
+  # Namespace where the created gateway should live (defaults to ingress namespace template)
+  namespace: ""
+  # Reference to an existing gateway (used only when create=false)
+  existing:
+    name: ""
+    namespace: ""
+  allowedRoutes:
+    namespaces:
+      # @param gateway.allowedRoutes.namespaces.from Allowed namespace scope for HTTPRoutes (All|Same|Selector)
+      from: All
+  tls:
+    hosts:
+      - name: supabase.local
+        credentialName: "supabase-local-tls"
+    extraHosts: []
+
+    ## Automated certificate issuance via cert-manager
+    ## When enabled, a cert-manager.io Certificate will be created in the istio.ingress.namespace
+    ## and will populate the secret referenced by credentialName (or the default <fullname>-tls)
+    certManager:
+      enabled: false
+      issuerRef:
+        # Set the name of an Issuer or ClusterIssuer (required when enabled)
+        name: "mkcert-issuer"
+        # Usually "Issuer" or "ClusterIssuer" (defaults to ClusterIssuer)
+        kind: ClusterIssuer
+        # group: cert-manager.io  # rarely needed unless using a different group
+      # Renewal / lifetime tuning (optional)
+      duration: 2160h        # 90d
+      renewBefore: 360h      # 15d
+      privateKey:
+        algorithm: RSA
+        size: 2048
+      # Extra DNS names to add in addition to gateway.hosts
+      extraDNSNames: []
+
+
 ## Istio ingress configuration (replaces Kong)
 istio:
   enabled: true
-  # DNS hosts served by the Gateway; use dummy by default
-  hosts:
-    - supabase.local
   # CORS customization (preflight shim). Add extra allowed request headers beyond the built-in list.
   cors:
     # @param istio.cors.extraAllowedHeaders Additional headers to include in Access-Control-Allow-Headers for preflight.
@@ -1296,48 +1342,6 @@ istio:
   redirect:
     enabled: false
     statusCode: 308
-
-  tls:
-    enabled: false
-    # If using SIMPLE TLS, reference an existing secret on the ingressgateway
-    credentialName: ""
-    ## Automated certificate issuance via cert-manager
-    ## When enabled, a cert-manager.io Certificate will be created in the istio.ingress.namespace
-    ## and will populate the secret referenced by credentialName (or the default <fullname>-tls)
-    certManager:
-      enabled: false
-      issuerRef:
-        # Set the name of an Issuer or ClusterIssuer (required when enabled)
-        name: ""
-        # Usually "Issuer" or "ClusterIssuer" (defaults to ClusterIssuer)
-        kind: ClusterIssuer
-        # group: cert-manager.io  # rarely needed unless using a different group
-      # Renewal / lifetime tuning (optional)
-      duration: 2160h        # 90d
-      renewBefore: 360h      # 15d
-      privateKey:
-        algorithm: RSA
-        size: 2048
-      # Extra DNS names to add in addition to istio.hosts
-      extraDNSNames: []
-
-  gateway:
-    # When true, this chart creates its own dedicated Gateway (and thus a dedicated LoadBalancer Service).
-    # Set to false to attach the HTTPRoute to an existing shared Gateway you manage elsewhere,
-    # avoiding a second LoadBalancer (required when sharing ports 80/443 with other workloads).
-    create: true
-    # Optional override for created gateway name (defaults to <release>-gateway)
-    name: ""
-    # Namespace where the created gateway should live (defaults to ingress namespace template)
-    namespace: ""
-    # Reference to an existing gateway (used only when create=false)
-    existing:
-      name: ""
-      namespace: ""
-    allowedRoutes:
-      namespaces:
-        # @param istio.gateway.allowedRoutes.namespaces.from Allowed namespace scope for HTTPRoutes (All|Same|Selector)
-        from: All
 
   # # Enable bootstrap creation of a shared gateway if create=false and an existing one is not found.
   # bootstrapShared: false
@@ -2644,12 +2648,12 @@ storage:
     GLOBAL_S3_FORCE_PATH_STYLE: "true"
     AWS_DEFAULT_REGION: "stub"
     TUS_URL_PATH: "/storage/v1/upload/resumable"
-    {{- if and .Values.imgproxy.enabled .Values.minio.enabled }}
+    {{- if and .Values.imgproxy.enabled .Values.s3.enabled }}
     ENABLE_IMAGE_TRANSFORMATION: "true"
     IMGPROXY_URL: "http://{{ include "supabase.imgproxy.fullname" . }}:{{ .Values.imgproxy.service.ports.http }}"
     {{- end }}
-    {{- if .Values.minio.enabled }}
-    GLOBAL_S3_ENDPOINT: http://{{ include "common.names.fullname" .Subcharts.minio }}:{{ default 9000 .Values.minio.minioAPIPort }}
+    {{- if .Values.s3.enabled }}
+    GLOBAL_S3_ENDPOINT: {{ printf "%s://%s:%v" (ternary "https" "http" .Values.s3.useSSL) .Values.s3.host (.Values.s3.port | int) | quote }}
     STORAGE_BACKEND: "s3"
     {{- else }}
     STORAGE_BACKEND: "file"

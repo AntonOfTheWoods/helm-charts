@@ -1,0 +1,52 @@
+{{- if .Values.gateway.create }}
+{{- /* Compute name (allow override) */ -}}
+{{- $autoName := printf "%s-gateway" (include "common.names.fullname" .) -}}
+{{- $gwName := .Values.gateway.name | default $autoName -}}
+{{- $hosts := concat (.Values.gateway.hosts | default list) (.Values.gateway.extraHosts | default list) -}}
+{{- $tlsHosts := concat (.Values.gateway.tls.hosts | default list) (.Values.gateway.extraTlsHosts | default list) -}}
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: {{ $gwName }}
+  namespace: {{ .Values.gateway.namespace | default (include "supabase.istio.ingress.namespace" .) }}
+  labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ ) | nindent 4 }}
+    app.kubernetes.io/part-of: supabase
+    app.kubernetes.io/component: ingress
+spec:
+  gatewayClassName: {{ .Values.gateway.gatewayClassName | default "istio" | quote }}
+  listeners:
+    - name: supabase-internal
+      hostname: {{- printf "%s.%s.%s.%s" "supabase-internal" .Release.Namespace "svc" .Values.clusterDomain | quote }}
+      port: 80
+      protocol: HTTP
+      allowedRoutes:
+        namespaces:
+          from: All
+
+    {{- range $host := $hosts }}
+    - name: {{- printf "http-%s" ($host | replace "." "-") | quote }}
+      hostname: {{ $host | quote }}
+      port: 80
+      protocol: HTTP
+      allowedRoutes:
+        namespaces:
+          from: All
+    {{- end }}
+
+    {{- if gt (len $tlsHosts) 0 }}
+    {{- range $host := $tlsHosts }}
+    - name: {{- printf "https-%s" ($host.name | replace "." "-") | quote }}
+      hostname: {{ $host.name | quote }}
+      port: 443
+      protocol: HTTPS
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: {{ $host.credentialName | default (printf "%s-tls" (include "common.names.fullname" .)) }}
+      allowedRoutes:
+        namespaces:
+          from: All
+      {{- end }}
+      {{- end }}
+{{- end }}

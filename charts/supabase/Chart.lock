@@ -1,9 +1,6 @@
 dependencies:
-- name: minio
-  repository: https://charts.min.io/
-  version: 5.4.0
 - name: vector
   repository: https://helm.vector.dev
-  version: 0.45.0
-digest: sha256:18208d1dc2c0fff45313447dbe0e3f5ee73bb19c315185c6d384ae6f4092a79d
-generated: "2025-08-15T13:49:54.98718776+08:00"
+  version: 0.46.0
+digest: sha256:19f6aa3574cb94b9963d636e687b83cff7449721b2c8744d1a6bf8be634d72dc
+generated: "2025-10-31T21:10:36.086076884+08:00"

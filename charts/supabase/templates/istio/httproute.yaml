@@ -1,11 +1,11 @@
 {{- if .Values.istio.enabled }}
 {{- /* Determine parent Gateway reference: either the one we create or an existing shared one */ -}}
 {{- $autoGwName := printf "%s-gateway" (include "common.names.fullname" .) -}}
-{{- $createdGwName := .Values.istio.gateway.name | default $autoGwName -}}
-{{- $parentGwName := ternary $createdGwName (.Values.istio.gateway.existing.name) ( .Values.istio.gateway.create ) -}}
-{{- $parentGwNamespace := (ternary (.Values.istio.gateway.namespace | default (include "supabase.istio.ingress.namespace" .)) (.Values.istio.gateway.existing.namespace) (.Values.istio.gateway.create)) -}}
-{{- if and (not .Values.istio.gateway.create) (or (empty .Values.istio.gateway.existing.name) (empty .Values.istio.gateway.existing.namespace)) }}
-{{- fail "istio.gateway.create is false; you must set istio.gateway.existing.name and istio.gateway.existing.namespace" }}
+{{- $createdGwName := .Values.gateway.name | default $autoGwName -}}
+{{- $parentGwName := ternary $createdGwName (.Values.gateway.existing.name) ( .Values.gateway.create ) -}}
+{{- $parentGwNamespace := (ternary (.Values.gateway.namespace | default (include "supabase.istio.ingress.namespace" .)) (.Values.gateway.existing.namespace) (.Values.gateway.create)) -}}
+{{- if and (not .Values.gateway.create) (or (empty .Values.gateway.existing.name) (empty .Values.gateway.existing.namespace)) }}
+{{- fail "gateway.create is false; you must set gateway.existing.name and gateway.existing.namespace" }}
 {{- end }}
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
