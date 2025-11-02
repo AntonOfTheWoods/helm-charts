@@ -1,5 +1,5 @@
 {{- /*
-Waypoint-level AuthorizationPolicies enforcing Supabase API key model (mandatory when istio.enabled).
+Waypoint-level AuthorizationPolicies enforcing Supabase API key model (mandatory when gateway.enabled).
 Strategy:
 1. Public (no key) access: /auth/v1/verify, /auth/v1/callback, /auth/v1/authorize
 2. Anon OR Service key required: /auth/v1/*, /rest/v1/*, /realtime/v1/*, /storage/v1/*, /functions/v1/*
@@ -20,7 +20,7 @@ If a key is still empty after lookup its rule will render without values so it n
 {{- $autoGwName := printf "%s-gateway" (include "common.names.fullname" .) -}}
 {{- $createdGwName := .Values.gateway.name | default $autoGwName -}}
 {{- $parentGwName := ternary $createdGwName (.Values.gateway.existing.name) ( .Values.gateway.create ) -}}
-{{- $parentGwNamespace := (ternary (.Values.gateway.namespace | default (include "supabase.istio.ingress.namespace" .)) (.Values.gateway.existing.namespace) (.Values.gateway.create)) -}}
+{{- $parentGwNamespace := (ternary (.Values.gateway.namespace | default (include "supabase.gateway.ingress.namespace" .)) (.Values.gateway.existing.namespace) (.Values.gateway.create)) -}}
 {{- if and (not .Values.gateway.create) (or (empty .Values.gateway.existing.name) (empty .Values.gateway.existing.namespace)) }}
 {{- fail "gateway.create is false; you must set gateway.existing.name and gateway.existing.namespace" }}
 {{- end }}
@@ -50,7 +50,7 @@ spec:
         - operation:
             methods: ["OPTIONS"]
             hosts:
-              {{- include "supabase.istio.validatedHosts" . | nindent 14 }}
+              {{- include "supabase.gateway.validatedHosts" . | nindent 14 }}
               - {{ include "supabase.api.baseHost" . | quote }}
             paths:
               - "/auth/v1/*"
@@ -79,7 +79,7 @@ spec:
     - to:
         - operation:
             hosts:
-              {{- include "supabase.istio.validatedHosts" . | nindent 14 }}
+              {{- include "supabase.gateway.validatedHosts" . | nindent 14 }}
               - {{ include "supabase.api.baseHost" . | quote }}
             paths:
               - "/auth/v1/verify"
@@ -118,7 +118,7 @@ spec:
       to:
         - operation:
             hosts:
-              {{- include "supabase.istio.validatedHosts" . | nindent 14 }}
+              {{- include "supabase.gateway.validatedHosts" . | nindent 14 }}
               - {{ include "supabase.api.baseHost" . | quote }}
             paths:
               - "/auth/v1/*"
@@ -152,7 +152,7 @@ spec:
       to:
         - operation:
             hosts:
-              {{- include "supabase.istio.validatedHosts" . | nindent 14 }}
+              {{- include "supabase.gateway.validatedHosts" . | nindent 14 }}
               - {{ include "supabase.api.baseHost" . | quote }}
             paths:
               - "/pg/*"

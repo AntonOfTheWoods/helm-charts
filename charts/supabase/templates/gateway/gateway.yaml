@@ -8,15 +8,25 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
   name: {{ $gwName }}
-  namespace: {{ .Values.gateway.namespace | default (include "supabase.istio.ingress.namespace" .) }}
+  namespace: {{ .Values.gateway.namespace | default (include "supabase.gateway.ingress.namespace" .) }}
+  {{- if or .Values.commonAnnotations .Values.gateway.tls.certManager.enabled }}
+  annotations:
+  {{- if .Values.commonAnnotations }}
+    {{- include "common.tplvalues.render" ( dict "value" .Values.commonAnnotations "context" $ ) | nindent 4 }}
+  {{- end }}
+  {{- if .Values.gateway.tls.certManager.enabled }}
+    cert-manager.io/{{ if eq (lower .Values.gateway.tls.certManager.issuerRef.kind) "clusterissuer" }}cluster-issuer{{ else }}issuer{{ end }}: {{ required "You must set gateway.tls.certManager.issuerRef.name when enabling cert-manager certificate." .Values.gateway.tls.certManager.issuerRef.name | quote }}
+  {{- end }}
+  {{- end }}
+
   labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ ) | nindent 4 }}
     app.kubernetes.io/part-of: supabase
     app.kubernetes.io/component: ingress
 spec:
   gatewayClassName: {{ .Values.gateway.gatewayClassName | default "istio" | quote }}
   listeners:
-    - name: supabase-internal
-      hostname: {{- printf "%s.%s.%s.%s" "supabase-internal" .Release.Namespace "svc" .Values.clusterDomain | quote }}
+    - name: supabase-internal-http
+      hostname: {{ include "supabase.api.baseHost" . | quote }}
       port: 80
       protocol: HTTP
       allowedRoutes:
@@ -24,7 +34,7 @@ spec:
           from: All
 
     {{- range $host := $hosts }}
-    - name: {{- printf "http-%s" ($host | replace "." "-") | quote }}
+    - name: {{ (printf "http-%s" ($host | replace "." "-")) | quote }}
       hostname: {{ $host | quote }}
       port: 80
       protocol: HTTP
@@ -35,7 +45,7 @@ spec:
 
     {{- if gt (len $tlsHosts) 0 }}
     {{- range $host := $tlsHosts }}
-    - name: {{- printf "https-%s" ($host.name | replace "." "-") | quote }}
+    - name: {{ (printf "https-%s" ($host.name | replace "." "-")) | quote }}
       hostname: {{ $host.name | quote }}
       port: 443
       protocol: HTTPS
@@ -43,7 +53,7 @@ spec:
         mode: Terminate
         certificateRefs:
           - kind: Secret
-            name: {{ $host.credentialName | default (printf "%s-tls" (include "common.names.fullname" .)) }}
+            name: {{ $host.credentialName | default (printf "%s-tls" ($host.name | replace "." "-") | quote) }}
       allowedRoutes:
         namespaces:
           from: All

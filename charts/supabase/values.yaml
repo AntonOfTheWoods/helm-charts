@@ -1304,7 +1304,7 @@ gateway:
       enabled: false
       issuerRef:
         # Set the name of an Issuer or ClusterIssuer (required when enabled)
-        name: "mkcert-issuer"
+        name: ""
         # Usually "Issuer" or "ClusterIssuer" (defaults to ClusterIssuer)
         kind: ClusterIssuer
         # group: cert-manager.io  # rarely needed unless using a different group
@@ -1316,16 +1316,16 @@ gateway:
         size: 2048
       # Extra DNS names to add in addition to gateway.hosts
       extraDNSNames: []
-
-
-## Istio ingress configuration (replaces Kong)
-istio:
-  enabled: true
   # CORS customization (preflight shim). Add extra allowed request headers beyond the built-in list.
   cors:
     # @param istio.cors.extraAllowedHeaders Additional headers to include in Access-Control-Allow-Headers for preflight.
     extraAllowedHeaders: []
 
+
+
+## Istio ingress configuration (replaces Kong)
+istio:
+  enabled: true
   # # Ingress gateway Service reference (namespace + service name) used by the Gateway and Certificate resources
   # ingress:
   #   # @param istio.ingress.serviceName Name of the Istio ingressgateway Service

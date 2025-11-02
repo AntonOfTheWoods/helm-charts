@@ -8,4 +8,4 @@ metadata:
     app.kubernetes.io/component: ingress
 spec:
   type: ExternalName
-  externalName: {{ include "supabase.istio.ingress.fqdn" . }}
+  externalName: {{ include "supabase.gateway.ingress.fqdn" . }}
