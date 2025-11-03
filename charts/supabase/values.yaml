@@ -116,7 +116,8 @@ jwt:
     ##
     image:
       registry: docker.io
-      repository: bitnami/jwt-cli
+      # FIXME: remove!
+      repository: bitnamilegacy/jwt-cli
       tag: 6.2.0-debian-12-r6
       digest: ""
       ## Specify a imagePullPolicy
@@ -143,7 +144,8 @@ jwt:
       ## @param jwt.autoGenerate.kubectlImage.pullSecrets Kubectl image pull secrets
       ##
       registry: docker.io
-      repository: bitnami/kubectl
+      # FIXME: remove!
+      repository: bitnamilegacy/kubectl
       tag: 1.31.3-debian-12-r0
       digest: ""
       ## Specify a imagePullPolicy
@@ -401,7 +403,7 @@ analytics:
   image:
     registry: docker.io
     repository: supabase/logflare
-    tag: 1.22.6
+    tag: 1.23.3
     pullPolicy: IfNotPresent
     digest: ""
     pullSecrets: []
@@ -1837,7 +1839,7 @@ realtime:
   image:
     registry: docker.io
     repository: supabase/realtime
-    tag: v2.34.40
+    tag: v2.59.1
     digest: ""
     ## Specify a imagePullPolicy
     ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'

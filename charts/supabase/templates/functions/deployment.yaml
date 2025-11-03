@@ -103,7 +103,7 @@ spec:
           env:
             {{- include "supabase.database.envvars" . | indent 12 }}
 
-            # THESE _MAY_ BE REQUIRED IN ADDITION TO POSTGRES_BACKEND_URL below!!!
+            # FIXME: THESE _MAY_ BE REQUIRED IN ADDITION TO POSTGRES_BACKEND_URL below!!!
             - name: DB_DATABASE
               value: $(DB_NAME)
             - name: DB_HOSTNAME
@@ -112,8 +112,12 @@ spec:
               value: $(DB_USER)
             - name: DB_DRIVER
               value: postgresql
+
+            # This can't go in the supabase.database.envvars template because
+            # other charts (like realtime) also use that template and they need
+            # different values for DB_SSL
             - name: DB_SSL
-              value: disable
+              value: {{ .Values.dbSSL | quote }}
 
             - name: POSTGRES_BACKEND_URL
               value: $(DB_DRIVER)://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?search_path=auth&sslmode=$(DB_SSL)

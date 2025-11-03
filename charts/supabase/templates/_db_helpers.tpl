@@ -78,8 +78,6 @@ reusable supabase db env vars
   value: {{ include "supabase.database.host" . | quote }}
 - name: DB_PORT
   value: {{ include "supabase.database.port" . | quote }}
-- name: DB_SSL
-  value: {{ .Values.dbSSL | quote }}
 
 # vanilla postgres env vars
 - name: PGDATABASE

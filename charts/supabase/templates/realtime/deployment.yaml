@@ -108,6 +108,11 @@ spec:
           env:
             {{ include "supabase.database.envvars" . | indent 12 }}
 
+            # This can't go in the supabase.database.envvars template because
+            # this deployment RIDICULOUSLY needs different values for DB_SSL
+            - name: DB_SSL
+              value: {{ if eq .Values.dbSSL "disable" }}"false"{{ else }}"true"{{ end }}
+
             - name: API_JWT_SECRET
               valueFrom:
                 secretKeyRef:

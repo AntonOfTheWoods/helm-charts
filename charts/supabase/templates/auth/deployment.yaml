@@ -106,6 +106,11 @@ spec:
           {{- end }}
           env:
             {{ include "supabase.database.envvars" . | indent 12 }}
+            # This can't go in the supabase.database.envvars template because
+            # other charts (like realtime) also use that template and they need
+            # different values for DB_SSL
+            - name: DB_SSL
+              value: {{ .Values.dbSSL | quote }}
 
             - name: GOTRUE_DB_DATABASE_URL
               value: "postgresql://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?search_path=auth&sslmode=$(DB_SSL)"
