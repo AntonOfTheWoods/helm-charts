@@ -98,6 +98,8 @@ spec:
           args: {{- include "common.tplvalues.render" (dict "value" .Values.studio.args "context" $) | nindent 12 }}
           {{- end }}
           env:
+            {{ include "supabase.database.envvars" . | indent 12 }}
+
             - name: SUPABASE_ANON_KEY
               valueFrom:
                 secretKeyRef:
@@ -116,6 +118,13 @@ spec:
 
             - name: HOSTNAME
               value: "::"
+
+            - name: PG_META_CRYPTO_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.meta.existingSecret }}
+                  key: {{ .Values.meta.existingSecretKey }}
+
 
             {{- if .Values.analytics.enabled }}
             - name: LOGFLARE_API_KEY

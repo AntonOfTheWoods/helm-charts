@@ -1365,13 +1365,7 @@ meta:
   replicaCount: 1
   ## @param meta.defaultConfig [string] Default Supabase Postgres Meta configuration
   ##
-  defaultConfig: |
-    PG_META_DB_USER: {{ include "supabase.database.user" . | quote }}
-    PG_META_DB_HOST: {{ include "supabase.database.host" . | quote }}
-    PG_META_DB_PORT: {{ include "supabase.database.port" . | quote }}
-    PG_META_DB_NAME: {{ include "supabase.database.name" . | quote }}
-    PG_META_DB_SSL_MODE: {{ .Values.dbSSL | quote }}
-    PG_META_PORT: {{ .Values.meta.containerPorts.http | quote }}
+  defaultConfig: ""
   ## @param meta.extraConfig Extra Supabase Postgres Meta configuration
   ##
   extraConfig: {}
@@ -1388,6 +1382,14 @@ meta:
   ## @param meta.image.pullPolicy Supabase Postgres Meta image pull policy
   ## @param meta.image.pullSecrets Supabase Postgres Meta image pull secrets
   ##
+
+  ## @param meta.existingSecret Name of an existing secret containing the crypto key for Supabase meta
+  ##
+  existingSecret: "supabase-meta-crypto"
+  ## @param meta.existingSecretKey Key in the existing secret containing the crypto key for Supabase meta
+  ##
+  existingSecretKey: "cryptokey"
+
   image:
     registry: docker.io
     repository: supabase/postgres-meta
@@ -3152,7 +3154,7 @@ studio:
   image:
     registry: docker.io
     repository: supabase/studio
-    tag: 2025.10.06-sha-426fda2
+    tag: 2025.10.31-sha-d66307f
     digest: ""
     ## Specify a imagePullPolicy
     ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'

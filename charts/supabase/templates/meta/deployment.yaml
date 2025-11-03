@@ -101,11 +101,12 @@ spec:
           args: {{- include "common.tplvalues.render" (dict "value" .Values.meta.args "context" $) | nindent 12 }}
           {{- end }}
           env:
-            - name: PG_META_DB_PASSWORD
+            {{ include "supabase.database.envvars" . | indent 12 }}
+            - name: CRYPTO_KEY
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "supabase.database.secretName" . }}
-                  key: {{ include "supabase.database.passwordKey" . | quote }}
+                  name: {{ .Values.meta.existingSecret }}
+                  key: {{ .Values.meta.existingSecretKey }}
 
             {{- if .Values.meta.extraEnvVars }}
             {{- include "common.tplvalues.render" (dict "value" .Values.meta.extraEnvVars "context" $) | nindent 12 }}

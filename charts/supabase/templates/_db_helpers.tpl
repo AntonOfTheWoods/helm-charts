@@ -65,37 +65,72 @@ Retrieve key of the postgres secret
 reusable supabase db env vars
 */}}
 {{- define "supabase.database.envvars" }}
-- name: DB_USER
-  value: {{ include "supabase.database.user" . | quote }}
-- name: DB_HOST
-  value: {{ include "supabase.database.host" . | quote }}
-- name: DB_PORT
-  value: {{ include "supabase.database.port" . | quote }}
 - name: DB_NAME
   value: {{ include "supabase.database.name" . | quote }}
+- name: DB_USER
+  value: {{ include "supabase.database.user" . | quote }}
 - name: DB_PASSWORD
   valueFrom:
     secretKeyRef:
       name: {{ include "supabase.database.secretName" . }}
       key: {{ include "supabase.database.passwordKey" . | quote }}
+- name: DB_HOST
+  value: {{ include "supabase.database.host" . | quote }}
+- name: DB_PORT
+  value: {{ include "supabase.database.port" . | quote }}
 - name: DB_SSL
   value: {{ .Values.dbSSL | quote }}
 
 # vanilla postgres env vars
 - name: PGDATABASE
-  value: {{ include "supabase.database.name" . | quote }}
+  value: "$(DB_NAME)"
 - name: PGUSER
-  value: {{ include "supabase.database.user" . | quote }}
+  value: "$(DB_USER)"
 - name: PGPASSWORD
   valueFrom:
     secretKeyRef:
       name: {{ include "supabase.database.secretName" . }}
       key: {{ include "supabase.database.passwordKey" . | quote }}
 - name: PGHOST
-  value: {{ include "supabase.database.host" . | quote }}
+  value: "$(DB_HOST)"
 - name: PGPORT
-  value: {{ include "supabase.database.port" . | quote }}
+  value: "$(DB_PORT)"
 
+# studio specific vars
+- name: POSTGRES_DATABASE
+  value: "$(DB_NAME)"
+- name: POSTGRES_DB
+  value: "$(DB_NAME)"
+- name: POSTGRES_USER_READ_WRITE
+  value: "$(DB_USER)"
+- name: POSTGRES_USER_READ_ONLY
+  value: "$(DB_USER)"
+- name: POSTGRES_PASSWORD
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.database.secretName" . }}
+      key: {{ include "supabase.database.passwordKey" . | quote }}
+- name: POSTGRES_HOST
+  value: "$(DB_HOST)"
+- name: POSTGRES_PORT
+  value: "$(DB_PORT)"
+
+# pgmeta specific vars
+- name: PG_META_DB_USER
+  value: "$(DB_USER)"
+- name: PG_META_DB_PASSWORD
+  valueFrom:
+    secretKeyRef:
+      name: {{ include "supabase.database.secretName" . }}
+      key: {{ include "supabase.database.passwordKey" . | quote }}
+- name: PG_META_DB_HOST
+  value: "$(DB_HOST)"
+- name: PG_META_DB_PORT
+  value: "$(DB_PORT)"
+- name: PG_META_DB_NAME
+  value: "$(DB_NAME)"
+- name: PG_META_DB_SSL_MODE
+  value: {{ .Values.dbSSL | quote }}
 {{- end -}}
 
 {{/*
