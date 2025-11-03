@@ -1,11 +1,8 @@
-# Copyright Broadcom, Inc. All Rights Reserved.
-# SPDX-License-Identifier: APACHE-2.0
-
-## @section Global parameters
-## Global Docker image parameters
-## Please, note that this will override the image parameters, including dependencies, configured to use the global value
-## Current available global Docker image parameters: imageRegistry, imagePullSecrets and storageClass
-##
+project:
+  name: "{{ .Release.Name }}"
+  local:
+    enabled: false
+    enableNodePorts: false
 
 ## @param global.imageRegistry Global Docker image registry
 ## @param global.imagePullSecrets Global Docker registry secret names as an array
@@ -404,7 +401,7 @@ analytics:
   image:
     registry: docker.io
     repository: supabase/logflare
-    tag: 1.14.2
+    tag: 1.22.6
     pullPolicy: IfNotPresent
     digest: ""
     pullSecrets: []
@@ -594,7 +591,7 @@ auth:
   image:
     registry: docker.io
     repository: supabase/auth
-    tag: v2.170.0
+    tag: v2.180.0
     digest: ""
     ## Specify a imagePullPolicy
     ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
@@ -1255,7 +1252,7 @@ imgproxy:
     dataSource: {}
 
 s3:
-  enabled: false
+  enabled: true
   host: minio
   port: 80
   useSSL: false
@@ -1276,7 +1273,9 @@ gateway:
   # Optional override for created gateway name (defaults to <release>-gateway)
   name: ""
   # DNS hosts served by the Gateway; use dummy by default
-  gatewayClassName: "istio"
+  gatewayClassName: "traefik"
+  internalService:
+    externalName: "traefik.kube-system.svc.cluster.local"
   hosts:
     - supabase.local
   extraHosts: []
@@ -1292,6 +1291,7 @@ gateway:
       # @param gateway.allowedRoutes.namespaces.from Allowed namespace scope for HTTPRoutes (All|Same|Selector)
       from: All
   tls:
+    enabled: true
     hosts:
       - name: supabase.local
         credentialName: "supabase-local-tls"
@@ -1318,7 +1318,7 @@ gateway:
       extraDNSNames: []
   # CORS customization (preflight shim). Add extra allowed request headers beyond the built-in list.
   cors:
-    # @param istio.cors.extraAllowedHeaders Additional headers to include in Access-Control-Allow-Headers for preflight.
+    # @param gateway.cors.extraAllowedHeaders Additional headers to include in Access-Control-Allow-Headers for preflight.
     extraAllowedHeaders: []
 
 
@@ -1391,7 +1391,7 @@ meta:
   image:
     registry: docker.io
     repository: supabase/postgres-meta
-    tag: v0.86.1
+    tag: v0.93.1
 
     digest: ""
     ## Specify a imagePullPolicy
@@ -2239,7 +2239,7 @@ rest:
   image:
     registry: docker.io
     repository: postgrest/postgrest
-    tag: v12.2.8
+    tag: v13.0.7
 
     digest: ""
     ## Specify a imagePullPolicy
@@ -2678,7 +2678,7 @@ storage:
   image:
     registry: docker.io
     repository: supabase/storage-api
-    tag: v1.19.3
+    tag: v1.28.4
 
     digest: ""
     ## Specify a imagePullPolicy
@@ -3152,7 +3152,7 @@ studio:
   image:
     registry: docker.io
     repository: supabase/studio
-    tag: 20250224-d10db0f
+    tag: 2025.10.06-sha-426fda2
     digest: ""
     ## Specify a imagePullPolicy
     ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
@@ -3689,7 +3689,7 @@ volumePermissions:
 psqlImage:
   registry: docker.io
   repository: postgres
-  tag: 17-alpine
+  tag: 18-alpine
   digest: ""
   ## Specify a imagePullPolicy
   ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'

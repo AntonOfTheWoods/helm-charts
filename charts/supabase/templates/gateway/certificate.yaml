@@ -1,39 +1,37 @@
-{{- /*
-Automated TLS certificate for Istio Gateway using cert-manager.
-Creates a Certificate in the configurable istio.ingress.namespace when .Values.istio.tls.certManager.enabled.
-Secret name matches the credentialName used by the Gateway (or defaults to <fullname>-tls).
-*/}}
 {{- if and .Values.gateway.tls.enabled .Values.gateway.tls.certManager.enabled }}
-{{- $credentialName := ( .Values.gateway.tls.credentialName | default (printf "%s-tls" (include "common.names.fullname" .)) ) -}}
+{{- $tlsHosts := concat (.Values.gateway.tls.hosts | default list) (.Values.gateway.tls.extraHosts | default list) -}}
+{{- $certMan := .Values.gateway.tls.certManager -}}
+{{- $base := .Values -}}
+{{- $ns := include "supabase.gateway.ingress.namespace" . -}}
+{{- range $host := $tlsHosts }}
+{{- $credentialName := $host.credentialName -}}
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: {{ $credentialName }}
-  namespace: {{ include "supabase.istio.ingress.namespace" . }}
-  labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ ) | nindent 4 }}
+  namespace: {{ $ns }}
+  labels: {{- include "common.labels.standard" ( dict "customLabels" $base.commonLabels "context" $ ) | nindent 4 }}
     app.kubernetes.io/part-of: supabase
     app.kubernetes.io/component: ingress
 spec:
   secretName: {{ $credentialName }}
   dnsNames:
-    {{- /* reuse same validation helper output (list items already quoted with dash) */}}
-    {{- include "supabase.istio.validatedHosts" . | nindent 4 }}
-    {{- range .Values.gateway.tls.certManager.extraDNSNames }}
-    - {{ . | quote }}
-    {{- end }}
+    - {{ $host.name }}
   issuerRef:
-    name: {{ required "You must set gateway.tls.certManager.issuerRef.name when enabling cert-manager certificate." .Values.gateway.tls.certManager.issuerRef.name | quote }}
-    kind: {{ .Values.gateway.tls.certManager.issuerRef.kind | default "ClusterIssuer" | quote }}
-    {{- if .Values.gateway.tls.certManager.issuerRef.group }}
-    group: {{ .Values.gateway.tls.certManager.issuerRef.group | quote }}
+    name: {{ required "You must set gateway.tls.certManager.issuerRef.name when enabling cert-manager certificate." $certMan.issuerRef.name | quote }}
+    kind: {{ $certMan.issuerRef.kind | default "ClusterIssuer" | quote }}
+    {{- if $certMan.issuerRef.group }}
+    group: {{ $certMan.issuerRef.group | quote }}
     {{- end }}
-  {{- if .Values.gateway.tls.certManager.duration }}
-  duration: {{ .Values.gateway.tls.certManager.duration | quote }}
+  {{- if $certMan.duration }}
+  duration: {{ $certMan.duration | quote }}
   {{- end }}
-  {{- if .Values.gateway.tls.certManager.renewBefore }}
-  renewBefore: {{ .Values.gateway.tls.certManager.renewBefore | quote }}
+  {{- if $certMan.renewBefore }}
+  renewBefore: {{ $certMan.renewBefore | quote }}
   {{- end }}
   privateKey:
-    algorithm: {{ .Values.gateway.tls.certManager.privateKey.algorithm | default "RSA" | quote }}
-    size: {{ .Values.gateway.tls.certManager.privateKey.size | default 2048 }}
+    algorithm: {{ $certMan.privateKey.algorithm | default "RSA" | quote }}
+    size: {{ $certMan.privateKey.size | default 2048 }}
+---
+{{- end }}
 {{- end }}

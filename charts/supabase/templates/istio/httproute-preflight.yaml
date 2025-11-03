@@ -4,7 +4,7 @@
 {{- $parentGwName := ternary $createdGwName (.Values.gateway.existing.name) ( .Values.gateway.create ) -}}
 {{- $parentGwNamespace := (ternary (.Values.gateway.namespace | default (include "supabase.gateway.ingress.namespace" .)) (.Values.gateway.existing.namespace) (.Values.gateway.create)) -}}
 {{- /* Enumerated allowed headers list (base + user extras) */ -}}
-{{- $baseAllowed := list "apikey" "authorization" "x-client-info" "x-supabase-api-version" "Accept" "Accept-Version" "Content-Length" "Content-MD5" "Content-Type" "Date" "X-Auth-Token" "X-Build-Number" "X-Request-Id" "Tus-Resumable" "X-Upsert" "Upload-Offset" "Upload-Length" "Upload-Metadata" "Upload-Concat" -}}
+{{- $baseAllowed := list "apikey" "authorization" "x-source" "x-client-info" "x-supabase-api-version" "Accept" "Accept-Version" "Content-Length" "Content-MD5" "Content-Type" "Date" "X-Auth-Token" "X-Build-Number" "X-Request-Id" "Tus-Resumable" "X-Upsert" "Upload-Offset" "Upload-Length" "Upload-Metadata" "Upload-Concat" -}}
 {{- $extra := .Values.gateway.cors.extraAllowedHeaders | default list -}}
 {{- $allAllowed := concat $baseAllowed $extra -}}
 apiVersion: gateway.networking.k8s.io/v1

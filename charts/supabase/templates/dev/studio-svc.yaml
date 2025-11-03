@@ -1,0 +1,18 @@
+{{- if and .Values.studio.enabled .Values.project.local.enabled .Values.project.local.enableNodePorts -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: studio-nodeport
+spec:
+  ports:
+  - name: nodeport-studio
+    nodePort: 30433
+    port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    app.kubernetes.io/component: studio
+    app.kubernetes.io/name: supabase
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  type: NodePort
+{{- end -}}
