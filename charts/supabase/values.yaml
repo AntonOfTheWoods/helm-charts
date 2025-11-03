@@ -998,8 +998,7 @@ functions:
   image:
     registry: docker.io
     repository: supabase/edge-runtime
-    # tag: v1.46.0
-    tag: v1.63.0
+    tag: v1.63.15
     digest: ""
     pullPolicy: IfNotPresent
     pullSecrets: []
@@ -1127,13 +1126,10 @@ imgproxy:
   existingConfigmap: ""
   extraConfigExistingConfigmap: ""
   image:
-    # FIXME: why doesn't this work???
-    # registry: ghcr.io
-    # repository: imgproxy/imgproxy
-    # FIXME: upstream is using `image: darthsim/imgproxy:v3.8.0`
+    # FIXME: why is upstream still using `image: darthsim/imgproxy:v3.8.0`?
     registry: docker.io
     repository: darthsim/imgproxy
-    tag: v3.26.1
+    tag: v3.30.1
     digest: ""
     pullPolicy: IfNotPresent
     pullSecrets: []
@@ -2243,7 +2239,7 @@ rest:
   image:
     registry: docker.io
     repository: postgrest/postgrest
-    tag: v13.0.7
+    tag: v13.0.8
 
     digest: ""
     ## Specify a imagePullPolicy
@@ -2682,7 +2678,7 @@ storage:
   image:
     registry: docker.io
     repository: supabase/storage-api
-    tag: v1.28.4
+    tag: v1.28.5
 
     digest: ""
     ## Specify a imagePullPolicy
@@ -3642,7 +3638,7 @@ volumePermissions:
   ##
   image:
     registry: docker.io
-    repository: bitnami/os-shell
+    repository: bitnamilegacy/os-shell
     tag: 12-debian-12-r22
     pullPolicy: IfNotPresent
     ## Optionally specify an array of imagePullSecrets.
@@ -3736,220 +3732,6 @@ serviceAccount:
   ##
   automountServiceAccountToken: false
 
-# kong:
-#   # Enable kong provisioning
-#   enabled: true
-#   image:
-#     repository: kong
-#     pullPolicy: IfNotPresent
-#     # tag: "latest"
-#     # tag: 3.9.1-ubuntu  # doesn't work!
-#     # tag: 2.8.5-ubuntu
-#     tag: 2.8.1
-#
-#   imagePullSecrets: []
-#   replicaCount: 1
-#   nameOverride: ""
-#   fullnameOverride: ""
-#   livenessProbe: {}
-#   readinessProbe: {}
-#   serviceAccount:
-#     # Specifies whether a service account should be created
-#     create: true
-#     # Annotations to add to the service account
-#     annotations: {}
-#     # The name of the service account to use.
-#     # If not set and create is true, a name is generated using the fullname template
-#     name: ""
-#   podAnnotations: {}
-#   podSecurityContext: {}
-#     # fsGroup: 2000
-#   securityContext: {}
-#     # capabilities:
-#     #   drop:
-#     #   - ALL
-#     # readOnlyRootFilesystem: true
-#     # runAsNonRoot: true
-#     # runAsUser: 1000
-#   service:
-#     type: ClusterIP
-#     port: 8000
-#     ports:
-#       proxyHttp: 8000
-#
-# #   ## @param kong.service.loadBalancerIP Kubernetes service LoadBalancer IP
-# #   ## @param kong.service.type Kubernetes service type
-# #   ## @param kong.service.ports.proxyHttp Kong service port
-# #   ##
-# #   service:
-# #     loadBalancerIP: ""
-# #     type: LoadBalancer
-# #     ports:
-# #       proxyHttp: 80
-# #
-#
-#   ingress:
-#     enabled: false
-#     className: "nginx"
-#     annotations:
-#       nginx.ingress.kubernetes.io/rewrite-target: /
-#       # cert-manager.io/cluster-issuer: "letsencrypt-staging"
-#       # kubernetes.io/tls-acme: "true"
-#     tls: []
-#       # Define TLS secret for SSL termination.
-#       # This section can be left blank if using cluster certificate manager.
-#       # Otherwise, setting this in tandem with certificate manager will overwrite the secret name.
-#       # - secretName: example-com-tls
-#       #   hosts:
-#       #     - supabase.local
-#     hosts:
-#       - host: supabase.local
-#         paths:
-#           - path: /
-#             pathType: Prefix
-#   # volumeMounts:
-#   #   - name: volume_name
-#   #     mountPath: /path/to/my/secret
-#   # volumes:
-#   #   - name: volume_name
-#   #     secret:
-#   #       defaultMode: 733
-#   #       secretName: my_secret
-#   #       items:
-#   #       - key: my_secret.txt
-#   #         path: name_of_file_in_container.txt
-#   resources: {}
-#     # We usually recommend not to specify default resources and to leave this as a conscious
-#     # choice for the user. This also increases chances charts run on environments with little
-#     # resources, such as Minikube. If you do want to specify resources, uncomment the following
-#     # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
-#     # limits:
-#     #   cpu: 100m
-#     #   memory: 128Mi
-#     # requests:
-#     #   cpu: 100m
-#     #   memory: 128Mi
-#   autoscaling:
-#     enabled: false
-#     minReplicas: 1
-#     maxReplicas: 100
-#     targetCPUUtilizationPercentage: 80
-#     # targetMemoryUtilizationPercentage: 80
-#   nodeSelector: {}
-#   tolerations: []
-#   affinity: {}
-
-# ## @section Kong sub-chart parameters
-# ##
-# kong:
-#   ## @param kong.enabled Enable Kong
-#   ##
-#   enabled: true
-#   ## @param kong.database Database to use
-#   # We will use declarative configuration so we don't need the database
-#   database: "off"
-#   ## @param kong.initContainers [string] Add additional init containers to the Kong pods
-#   ##
-#   initContainers: |
-#     - name: render-kong-declarative-conf
-#       image: docker.io/bitnami/os-shell:12-debian-12-r47
-#       command:
-#         - /bin/bash
-#       args:
-#         - -ec
-#         - |
-#           #!/bin/bash
-#
-#           echo "Rendering Supabase declarative config template"
-#           /opt/bitnami/common/bin/render-template /bitnami/kong/declarative-template/kong.yml.tpl > "/bitnami/kong/declarative-conf/kong.yml"
-#       volumeMounts:
-#         - name: declarative-conf-template
-#           mountPath: /bitnami/kong/declarative-template/
-#         - name: rendered-declarative-conf
-#           mountPath: /bitnami/kong/declarative-conf/
-#       {{- if .Values.containerSecurityContext.enabled }}
-#       securityContext: {{- omit .Values.containerSecurityContext "enabled" | toYaml | nindent 6 }}
-#       {{- end }}
-#       env:
-#         - name: SUPABASE_ANON_KEY
-#           valueFrom:
-#             secretKeyRef:
-#               name: '{{ include "supabase.jwt.secretName" . }}'
-#               key: '{{ include "supabase.jwt.anonSecretKey" . }}'
-#         - name: SUPABASE_SERVICE_KEY
-#           valueFrom:
-#             secretKeyRef:
-#               name: '{{ include "supabase.jwt.secretName" . }}'
-#               key: '{{ include "supabase.jwt.serviceSecretKey" . }}'
-#   ## @param kong.ingressController.enabled Enable Kong Ingress Controller
-#   ##
-#   ingressController:
-#     enabled: false
-#   ## @param kong.kong.extraVolumeMounts [array] Additional volumeMounts to the Kong container
-#   ## @param kong.kong.extraEnvVars [array] Additional environment variables to set
-#   ##
-#   kong:
-#     # maybe try kong:2.8.1 ???
-#     # image:
-#     #   tag:
-#     extraVolumeMounts:
-#       - name: rendered-declarative-conf
-#         mountPath: /bitnami/kong/declarative-conf/
-#     extraEnvVars:
-#       - name: KONG_DECLARATIVE_CONFIG
-#         value: "/bitnami/kong/declarative-conf/kong.yml"
-#       - name: KONG_DNS_ORDER
-#         value: LAST,A,CNAME
-#       - name: KONG_PLUGINS
-#         value: request-transformer,cors,key-auth,acl
-#     ## Container resource requests and limits
-#     ## ref: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
-#     ## @param kong.kong.resourcesPreset Set container resources according to one common preset (allowed values: none, nano, small, medium, large, xlarge, 2xlarge). This is ignored if kong.resources is set (kong.resources is recommended for production).
-#     ## More information: https://github.com/bitnami/charts/blob/main/bitnami/common/templates/_resources.tpl#L15
-#     ##
-#     resourcesPreset: "medium"
-#     ## @param kong.kong.resources Set container requests and limits for different resources like CPU or memory (essential for production workloads)
-#     ## Example:
-#     ## resources:
-#     ##   requests:
-#     ##     cpu: 2
-#     ##     memory: 512Mi
-#     ##   limits:
-#     ##     cpu: 3
-#     ##     memory: 1024Mi
-#     ##
-#     resources: {}
-#   ## @param kong.extraVolumes [array] Additional volumes to the Kong pods
-#   ##
-#   extraVolumes:
-#     - name: declarative-conf-template
-#       configMap:
-#         name: "{{ .Release.Name }}-kong-declarative-config"
-#     - name: rendered-declarative-conf
-#       emptyDir: {}
-#   ## @param kong.ingress.enabled Enable Ingress rule
-#   ## @param kong.ingress.hostname Kong Ingress hostname
-#   ## @param kong.ingress.tls Enable TLS for Kong Ingress
-#   ##
-#   ingress:
-#     enabled: false
-#     hostname: "supabase.local"
-#     tls: false
-#   ## @param kong.service.loadBalancerIP Kubernetes service LoadBalancer IP
-#   ## @param kong.service.type Kubernetes service type
-#   ## @param kong.service.ports.proxyHttp Kong service port
-#   ##
-#   service:
-#     loadBalancerIP: ""
-#     type: LoadBalancer
-#     ports:
-#       proxyHttp: 80
-#
-#   ## @param kong.postgresql.enabled Switch to enable or disable the PostgreSQL helm chart inside the Kong subchart
-#   ##
-#   postgresql:
-#     enabled: false
-
 ## External PostgreSQL configuration
 ## @param externalDatabase.host Database host
 ## @param externalDatabase.port Database port number
@@ -3971,7 +3753,7 @@ externalDatabase:
 vector:
   # FIXME: check this still works... docker-compose is still using `image: timberio/vector:0.28.1-alpine`
   image:
-    tag: 0.42.0-debian
+    tag: 0.50.0-debian
   # command: [ "/bin/bash", "-c", "--" ]
   # args: [ "while true; do sleep 10; done;" ]
 
