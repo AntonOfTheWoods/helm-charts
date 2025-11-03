@@ -3777,3 +3777,8 @@ vector:
         secretKeyRef:
           name: supabase-logflare
           key: api-key
+    - name: LOGFLARE_PUBLIC_ACCESS_TOKEN
+      valueFrom:
+        secretKeyRef:
+          name: supabase-logflare
+          key: api-key

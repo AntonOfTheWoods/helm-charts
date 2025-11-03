@@ -132,6 +132,21 @@ spec:
                 secretKeyRef:
                   name: {{ include "supabase.analytics.secretName" . }}
                   key: {{ include "supabase.analytics.apiSecretKey" . }}
+
+            - name: LOGFLARE_PUBLIC_ACCESS_TOKEN
+              # value: your-super-secret-and-long-logflare-key-public
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.analytics.secretName" . }}
+                  key: {{ include "supabase.analytics.apiSecretKey" . }}
+
+            - name: LOGFLARE_PRIVATE_ACCESS_TOKEN
+              # value: your-super-secret-and-long-logflare-key-private
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.analytics.secretName" . }}
+                  key: {{ include "supabase.analytics.apiPrivateSecretKey" . }}
+
             {{- end }}
 
             {{- if .Values.studio.extraEnvVars }}

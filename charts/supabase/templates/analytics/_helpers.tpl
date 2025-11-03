@@ -37,3 +37,14 @@ analytics (logflare) credential api secret key
   {{- print "api-key" -}}
 {{- end -}}
 {{- end -}}
+
+{{/*
+analytics (logflare) credential api secret key
+*/}}
+{{- define "supabase.analytics.apiPrivateSecretKey" -}}
+{{- if and .Values.analytics.existingSecret .Values.analytics.existingSecretApiPrivateKey -}}
+  {{- print .Values.analytics.existingSecretApiPrivateKey -}}
+{{- else -}}
+  {{- print "private-key" -}}
+{{- end -}}
+{{- end -}}

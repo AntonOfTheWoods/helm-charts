@@ -33,7 +33,7 @@ data:
 
     api:
       enabled: true
-      address: 0.0.0.0:8686
+      address: 0.0.0.0:9001
 
     sources:
       kubernetes_host:
@@ -57,24 +57,25 @@ data:
         inputs:
           - project_logs
         route:
-          kong: '.appname == "{{ .Release.Name }}" + "-kong"'
-          db: '.appname == "{{ .Release.Name }}" + "-postgresql"'
-          rest: '.appname == "{{ .Release.Name }}" + "-postgrest"'
-          auth: '.appname == "{{ .Release.Name }}" + "-gotrue"'
-          storage: '.appname == "{{ .Release.Name }}" + "-supabase-storage"'
-          realtime: '.appname == "{{ .Release.Name }}" + "-supabase-realtime"'
-          functions: '.appname == "{{ .Release.Name }}" + "-supabase-functions"'
-          analytics: '.appname == "{{ .Release.Name }}" + "-supabase-logflare"'
-          imgproxy: '.appname == "{{ .Release.Name }}" + "-supabase-imgproxy"'
+          kong: '.appname == "{{ .Release.Namespace }}" + "-nginx"'
+          db: '.appname == "{{ .Release.Namespace }}" + "-postgres"'
+          rest: '.appname == "{{ .Release.Namespace }}" + "-postgrest"'
+          auth: '.appname == "{{ .Release.Namespace }}" + "-gotrue"'
+          storage: '.appname == "{{ .Release.Namespace }}" + "-supabase-storage"'
+          realtime: '.appname == "{{ .Release.Namespace }}" + "-supabase-realtime"'
+          functions: '.appname == "{{ .Release.Namespace }}" + "-supabase-functions"'
+          analytics: '.appname == "{{ .Release.Namespace }}" + "-supabase-analytics"'
+          imgproxy: '.appname == "{{ .Release.Namespace }}" + "-supabase-imgproxy"'
           dns: '.appname == "kube-system-coredns"'
-          controller: '.appname == "{{ .Release.Name }}" + "-controller"'
-      # Ignores non nginx errors since they are related with kong booting up
+          controller: '.appname == "{{ .Release.Namespace }}" + "-controller"'
+
       kong_logs:
         type: remap
         inputs:
           - router.kong
         source: |-
           req, err = parse_nginx_log(.event_message, "combined")
+          # FIXME: this doesn't work
           if err == null {
               .timestamp = req.timestamp
               .metadata.request.headers.referer = req.referer
@@ -88,30 +89,7 @@ data:
           if err != null {
             abort
           }
-      # Ignores non nginx errors since they are related with kong booting up
-      kong_err:
-        type: remap
-        inputs:
-          - router.kong
-        source: |-
-          .metadata.request.method = "GET"
-          .metadata.response.status_code = 200
-          parsed, err = parse_nginx_log(.event_message, "error")
-          if err == null {
-              .timestamp = parsed.timestamp
-              .severity = parsed.severity
-              .metadata.request.host = parsed.host
-              .metadata.request.headers.cf_connecting_ip = parsed.client
-              url, err = split(parsed.request, " ")
-              if err == null {
-                  .metadata.request.method = url[0]
-                  .metadata.request.path = url[1]
-                  .metadata.request.protocol = url[2]
-              }
-          }
-          if err != null {
-            abort
-          }
+
       # Gotrue logs are structured json strings which frontend parses directly. But we keep metadata for consistency.
       auth_logs:
         type: remap
@@ -148,6 +126,14 @@ data:
               .event_message = parsed.msg
               .metadata.level = parsed.level
           }
+      # Function logs are unstructured messages on stderr
+      functions_logs:
+        type: remap
+        inputs:
+          - router.functions
+        source: |-
+          .metadata.project_ref = del(.project)
+
       # Storage logs may contain json objects so we parse them for completeness
       storage_logs:
         type: remap
@@ -173,16 +159,20 @@ data:
           .metadata.host = "db-default"
           .metadata.parsed.timestamp = .timestamp
 
-          parsed, err = parse_regex(.event_message, r'.*(?P<level>INFO|NOTICE|WARNING|ERROR|LOG|FATAL|PANIC?):.*', numeric_groups: true)
+          parsed, err = parse_json(.event_message)
+          if err == null {
+              .metadata.timestamp = parsed.time
+              .metadata = merge!(.metadata, parsed)
+          }
 
           if err != null || parsed == null {
             .metadata.parsed.error_severity = "info"
           }
           if parsed != null {
-          .metadata.parsed.error_severity = parsed.level
+            .metadata.parsed.error_severity = parsed.level
           }
           if .metadata.parsed.error_severity == "info" {
-              .metadata.parsed.error_severity = "log"
+            .metadata.parsed.error_severity = "log"
           }
           .metadata.parsed.error_severity = upcase!(.metadata.parsed.error_severity)
 
@@ -205,6 +195,9 @@ data:
         method: 'post'
         request:
           retry_max_duration_secs: 10
+          headers:
+            x-api-key: ${LOGFLARE_PUBLIC_ACCESS_TOKEN?LOGFLARE_PUBLIC_ACCESS_TOKEN is required}
+
         uri: 'http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}/api/logs?source_name=gotrue.logs.prod&api_key=SECRET[credentials.logflare_api_key]'
       logflare_realtime:
         type: 'http'
@@ -215,6 +208,8 @@ data:
         method: 'post'
         request:
           retry_max_duration_secs: 10
+          headers:
+            x-api-key: ${LOGFLARE_PUBLIC_ACCESS_TOKEN?LOGFLARE_PUBLIC_ACCESS_TOKEN is required}
         uri: 'http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}/api/logs?source_name=realtime.logs.prod&api_key=SECRET[credentials.logflare_api_key]'
       logflare_rest:
         type: 'http'
@@ -225,6 +220,8 @@ data:
         method: 'post'
         request:
           retry_max_duration_secs: 10
+          headers:
+            x-api-key: ${LOGFLARE_PUBLIC_ACCESS_TOKEN?LOGFLARE_PUBLIC_ACCESS_TOKEN is required}
         uri: 'http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}/api/logs?source_name=postgREST.logs.prod&api_key=SECRET[credentials.logflare_api_key]'
       logflare_db:
         type: 'http'
@@ -235,18 +232,23 @@ data:
         method: 'post'
         request:
           retry_max_duration_secs: 10
+          headers:
+            x-api-key: ${LOGFLARE_PUBLIC_ACCESS_TOKEN?LOGFLARE_PUBLIC_ACCESS_TOKEN is required}
         # Send directly to analytics service; no Kong in Istio mode
         uri: 'http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}/api/logs?source_name=postgres.logs&api_key=SECRET[credentials.logflare_api_key]'
       logflare_functions:
         type: 'http'
         inputs:
-          - router.functions
+          - functions_logs
         encoding:
           codec: 'json'
         method: 'post'
         request:
           retry_max_duration_secs: 10
+          headers:
+            x-api-key: ${LOGFLARE_PUBLIC_ACCESS_TOKEN?LOGFLARE_PUBLIC_ACCESS_TOKEN is required}
         uri: 'http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}/api/logs?source_name=deno-relay-logs&api_key=SECRET[credentials.logflare_api_key]'
+
       logflare_storage:
         type: 'http'
         inputs:
@@ -256,17 +258,24 @@ data:
         method: 'post'
         request:
           retry_max_duration_secs: 10
+          headers:
+            x-api-key: ${LOGFLARE_PUBLIC_ACCESS_TOKEN?LOGFLARE_PUBLIC_ACCESS_TOKEN is required}
         uri: 'http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}/api/logs?source_name=storage.logs.prod.2&api_key=SECRET[credentials.logflare_api_key]'
+
       logflare_kong:
         type: 'http'
         inputs:
           - kong_logs
-          - kong_err
+          # - kong_err
         encoding:
           codec: 'json'
         method: 'post'
         request:
           retry_max_duration_secs: 10
+          headers:
+            x-api-key: ${LOGFLARE_PUBLIC_ACCESS_TOKEN?LOGFLARE_PUBLIC_ACCESS_TOKEN is required}
         uri: 'http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.port }}/api/logs?source_name=cloudflare.logs.prod&api_key=SECRET[credentials.logflare_api_key]'
+
     {{- end }}
+
 {{- end }}
