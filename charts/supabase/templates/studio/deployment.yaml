@@ -125,6 +125,29 @@ spec:
                   name: {{ .Values.meta.existingSecret }}
                   key: {{ .Values.meta.existingSecretKey }}
 
+            - name: SUPABASE_URL
+              value: {{ include "supabase.api.baseHttp" . | quote }}
+            - name: STUDIO_PG_META_URL
+              value: {{ printf "%s/pg" (include "supabase.api.baseHttp" .) | quote }}
+            - name: SUPABASE_PUBLIC_URL
+              value: {{ include "supabase.api.publicURL" . | quote }}
+            - name: PORT
+              value: {{ .Values.studio.containerPorts.http | quote }}
+
+            # FIXME: is this necessary?
+            - name: CURRENT_CLI_VERSION
+              value: "2.53.6"
+
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.s3.accessKey.secretname | default "s3-storage" }}
+                  key: {{ .Values.s3.accessKey.keyname | default "username" }}
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.s3.secretKey.secretname | default "s3-storage" }}
+                  key: {{ .Values.s3.secretKey.keyname | default "password" }}
 
             {{- if .Values.analytics.enabled }}
             - name: LOGFLARE_API_KEY
@@ -134,19 +157,23 @@ spec:
                   key: {{ include "supabase.analytics.apiSecretKey" . }}
 
             - name: LOGFLARE_PUBLIC_ACCESS_TOKEN
-              # value: your-super-secret-and-long-logflare-key-public
               valueFrom:
                 secretKeyRef:
                   name: {{ include "supabase.analytics.secretName" . }}
                   key: {{ include "supabase.analytics.apiSecretKey" . }}
 
             - name: LOGFLARE_PRIVATE_ACCESS_TOKEN
-              # value: your-super-secret-and-long-logflare-key-private
               valueFrom:
                 secretKeyRef:
                   name: {{ include "supabase.analytics.secretName" . }}
                   key: {{ include "supabase.analytics.apiPrivateSecretKey" . }}
 
+            - name: NEXT_ANALYTICS_BACKEND_PROVIDER
+              value: {{ .Values.studio.analytics.backendProvider | quote }}
+            - name: LOGFLARE_URL
+              value: "http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.ports.http }}"
+            - name: NEXT_PUBLIC_ENABLE_LOGS
+              value: "true"
             {{- end }}
 
             {{- if .Values.studio.extraEnvVars }}
@@ -169,8 +196,6 @@ spec:
             {{- end }}
           {{- if .Values.studio.resources }}
           resources: {{- toYaml .Values.studio.resources | nindent 12 }}
-          {{- else if ne .Values.studio.resourcesPreset "none" }}
-          resources: {{- include "common.resources.preset" (dict "type" .Values.studio.resourcesPreset) | nindent 12 }}
           {{- end }}
           ports:
             - name: http-studio

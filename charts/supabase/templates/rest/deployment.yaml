@@ -132,6 +132,19 @@ spec:
                   name: {{ include "supabase.jwt.secretName" . }}
                   key: expiry
 
+            - name: PGRST_DB_ANON_ROLE
+              value: {{ .Values.rest.anonRole | quote }}
+            - name: PGRST_DB_SCHEMA
+              value: {{ .Values.rest.dbSchema | quote }}
+            - name: PGRST_DB_USE_LEGACY_GUCS
+              value: {{ .Values.rest.dbUseLegacyGucs | quote }}
+            - name: PGRST_SERVER_PORT
+              value: {{ .Values.rest.containerPorts.http | quote }}
+            - name: PGRST_DB_SCHEMAS
+              value: {{ .Values.rest.dbSchemas | quote }}
+            - name: PGRST_DB_AGGREGATES_ENABLED
+              value: {{ .Values.rest.dbAggregatesEnabled | quote }}
+
             {{- if .Values.rest.extraEnvVars }}
             {{- include "common.tplvalues.render" (dict "value" .Values.rest.extraEnvVars "context" $) | nindent 12 }}
             {{- end }}
@@ -152,8 +165,6 @@ spec:
             {{- end }}
           {{- if .Values.rest.resources }}
           resources: {{- toYaml .Values.rest.resources | nindent 12 }}
-          {{- else if ne .Values.rest.resourcesPreset "none" }}
-          resources: {{- include "common.resources.preset" (dict "type" .Values.rest.resourcesPreset) | nindent 12 }}
           {{- end }}
           ports:
             - name: http

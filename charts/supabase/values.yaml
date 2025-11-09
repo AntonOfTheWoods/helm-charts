@@ -106,7 +106,7 @@ jwt:
     ##
     forceRun: false
     ## Bitnami JWT CLI image
-    ## ref: https://hub.docker.com/r/bitnami/jwt-cli/tags/
+    ## ref: https://hub.docker.com/r/bitnamilegacy/jwt-cli/tags/
     ## @param jwt.autoGenerate.image.registry [default: REGISTRY_NAME] JWT CLI image registry
     ## @param jwt.autoGenerate.image.repository [default: REPOSITORY_NAME/jwt-cli] JWT CLI image repository
     ## @skip jwt.autoGenerate.image.tag JWT CLI image tag (immutable tags are recommended)
@@ -118,7 +118,7 @@ jwt:
       registry: docker.io
       # FIXME: remove!
       repository: bitnamilegacy/jwt-cli
-      tag: 6.2.0-debian-12-r6
+      tag: 6.2.0-debian-12-r16
       digest: ""
       ## Specify a imagePullPolicy
       ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
@@ -135,7 +135,7 @@ jwt:
       pullSecrets: []
     kubectlImage:
       ## Bitnami Kubectl image
-      ## ref: https://hub.docker.com/r/bitnami/kubectl/tags/
+      ## ref: https://hub.docker.com/r/bitnamilegacy/kubectl/tags/
       ## @param jwt.autoGenerate.kubectlImage.registry [default: REGISTRY_NAME] Kubectl image registry
       ## @param jwt.autoGenerate.kubectlImage.repository [default: REPOSITORY_NAME/kubectl] Kubectl image repository
       ## @skip jwt.autoGenerate.kubectlImage.tag Kubectl image tag (immutable tags are recommended)
@@ -146,7 +146,7 @@ jwt:
       registry: docker.io
       # FIXME: remove!
       repository: bitnamilegacy/kubectl
-      tag: 1.31.3-debian-12-r0
+      tag: 1.33.4-debian-12-r0
       digest: ""
       ## Specify a imagePullPolicy
       ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
@@ -347,12 +347,12 @@ jwt:
     ## @param jwt.autoGenerate.extraVolumeMounts Array of extra volume mounts to be added to the jwt Container (evaluated as template). Normally used with `extraVolumes`.
     ##
     extraVolumeMounts: []
+    ## FIXME: replace or remove
     ## Container resource requests and limits
     ## ref: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
     ## @param jwt.autoGenerate.resourcesPreset Set container resources according to one common preset (allowed values: none, nano, micro, small, medium, large, xlarge, 2xlarge). This is ignored if jwt.autoGenerate.resources is set (jwt.autoGenerate.resources is recommended for production).
     ## More information: https://github.com/bitnami/charts/blob/main/bitnami/common/templates/_resources.tpl#L15
     ##
-    resourcesPreset: "nano"
     ## @param jwt.autoGenerate.resources Set container requests and limits for different resources like CPU or memory (essential for production workloads)
     ## Example:
     ## resources:
@@ -446,7 +446,6 @@ analytics:
   customLivenessProbe: {}
   customReadinessProbe: {}
   customStartupProbe: {}
-  resourcesPreset: "small"
   resources: {}
   podSecurityContext:
     enabled: false  # FIXME:
@@ -526,7 +525,7 @@ analytics:
 ##
 analyticsdb:
   enabled: true
-  host: "externaldb"
+  host: "analyticsdb"
   port: 1111
   database: postgresisgreat
   ## @param analyticsdb.auth.user Non-root username for PostgreSQL
@@ -541,6 +540,8 @@ analyticsdb:
 ##
 ##
 auth:
+  logLevel: "info"
+
   ## @param auth.enabled Enable Supabase auth
   ##
   enabled: true
@@ -549,31 +550,55 @@ auth:
   replicaCount: 1
   ## @param auth.defaultConfig [string] Supabase auth default configuration
   ##
-  defaultConfig: |
-    GOTRUE_API_HOST: "0.0.0.0"
-    GOTRUE_API_PORT: {{ .Values.auth.containerPorts.http | quote }}
-    API_EXTERNAL_URL: "http:/{{ include "supabase.auth.fullname" . }}:{{ .Values.auth.service.ports.http }}"
-    GOTRUE_SITE_URL: {{ include "supabase.studio.publicURL" . | quote }}
-    GOTRUE_URI_ALLOW_LIST: "*"
-    GOTRUE_DB_DRIVER: "postgres"
-    GOTRUE_DB_MIGRATIONS_PATH: "/usr/local/etc/auth/migrations/"
-    GOTRUE_JWT_DEFAULT_GROUP_NAME: "authenticated"
-    GOTRUE_JWT_ADMIN_ROLES: "service_role"
-    GOTRUE_JWT_AUD: "authenticated"
-    GOTRUE_JWT_EXP: "3600"
-    GOTRUE_DISABLE_SIGNUP: "true"
-    GOTRUE_EXTERNAL_EMAIL_ENABLED: "false"
-    GOTRUE_MAILER_AUTOCONFIRM: "false"
-    GOTRUE_SMTP_ADMIN_EMAIL: "your-mail@example.com"
-    GOTRUE_SMTP_HOST: "smtp.example.com"
-    GOTRUE_SMTP_PORT: "587"
-    GOTRUE_SMTP_SENDER_NAME: "your-mail@example.com"
-    GOTRUE_EXTERNAL_PHONE_ENABLED: "false"
-    GOTRUE_SMS_AUTOCONFIRM: "false"
-    GOTRUE_MAILER_URLPATHS_INVITE: "{{ include "supabase.studio.publicURL" . }}/auth/v1/verify"
-    GOTRUE_MAILER_URLPATHS_CONFIRMATION: "{{ include "supabase.studio.publicURL" . }}/auth/v1/verify"
-    GOTRUE_MAILER_URLPATHS_RECOVERY: "{{ include "supabase.studio.publicURL" . }}/auth/v1/verify"
-    GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: "{{ include "supabase.studio.publicURL" . }}/auth/v1/verify"
+  apiHost: "0.0.0.0"
+  apiPort: ""  # will default to containerPorts.http
+  apiExternalURL: ""  # will default to publicURL
+  uriAllowList: "*"
+  dbDriver: "postgres"
+  dbMigrationsPath: "/usr/local/etc/auth/migrations/"
+  jwtDefaultGroupName: "authenticated"
+  jwtAdminRoles: "service_role"
+  jwtAud: "authenticated"
+  jwtExp: "86400"
+  disableSignup: true
+  externalEmailEnabled: false
+  mailerAutoconfirm: false
+  smtpAdminEmail: "your-mail@example.com"
+  smtpHost: "smtp.example.com"
+  smtpPort: 587
+  smtpSenderName: "your-mail@example.com"
+  smtpUser:
+    secretname: supabase-smtp
+    keyname: username
+  smtpPass:
+    secretname: supabase-smtp
+    keyname: password
+
+  externalPhoneEnabled: false
+  smsAutoconfirm: false
+
+  mailer:
+    externalHosts: "supabase.local"
+    urlPaths:
+      invite: ""  # will default to <publicURL>/auth/v1/verify
+      confirmation: ""  # will default to <publicURL>/auth/v1/verify
+      recovery: ""  # will default to <publicURL>/auth/v1/verify
+      emailChange: ""  # will default to <publicURL>/auth/v1/verify
+    subjects:
+      invite: "Welcome to the app!"
+      confirmation: "Please confirm your email for the app!"
+      recovery: "Reset your password for the app!"
+      magicLink: "Your magic link for the app!"
+      emailChange: "Confirm email change for the app!"
+    templates:
+      invite: ""
+      confirmation: ""
+      recovery: ""
+      magicLink: ""
+      emailChange: ""
+
+  defaultConfig: ""
+
   ## @param auth.extraConfig Supabase auth extra configuration
   ##
   extraConfig: {}
@@ -665,12 +690,12 @@ auth:
   ## @param auth.customStartupProbe Custom startupProbe that overrides the default one
   ##
   customStartupProbe: {}
+  ## FIXME: replace or remove
   ## Supabase auth resource requests and limits
   ## ref: http://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
   ## @param auth.resourcesPreset Set container resources according to one common preset (allowed values: none, nano, micro, small, medium, large, xlarge, 2xlarge). This is ignored if auth.resources is set (auth.resources is recommended for production).
   ## More information: https://github.com/bitnami/charts/blob/main/bitnami/common/templates/_resources.tpl#L15
   ##
-  resourcesPreset: "micro"
   ## @param auth.resources Set container requests and limits for different resources like CPU or memory (essential for production workloads)
   ## Example:
   ## resources:
@@ -974,7 +999,7 @@ functions:
       - sleep
     args:
       - infinity
-  userFunctionsPath: /bitnami/supabase-functions
+  userFunctionsPath: /supabase/supabase-functions
   entrypointPath: /home/deno/functions/main
 
   # kongReadTimeoutMs: 60000
@@ -1028,7 +1053,8 @@ functions:
   customLivenessProbe: {}
   customReadinessProbe: {}
   customStartupProbe: {}
-  resourcesPreset: "micro"
+  ## FIXME: replace or remove
+  # resourcesPreset: "micro"
   resources: {}
   podSecurityContext:
     enabled: false  # FIXME:
@@ -1102,7 +1128,7 @@ functions:
     ingressNSPodMatchLabels: {}
   persistence:
     enabled: true
-    mountPath: /bitnami/supabase-functions
+    mountPath: /supabase/supabase-functions
     subPath: ""
     storageClass: ""
     annotations: {}
@@ -1164,7 +1190,8 @@ imgproxy:
   customLivenessProbe: {}
   customReadinessProbe: {}
   customStartupProbe: {}
-  resourcesPreset: "medium"
+  ## FIXME: replace or remove
+  # resourcesPreset: "medium"
   resources: {}
   podSecurityContext:
     enabled: true
@@ -1238,7 +1265,7 @@ imgproxy:
     ingressNSPodMatchLabels: {}
   persistence:
     enabled: true
-    mountPath: /bitnami/supabase-imgproxy
+    mountPath: /supabase/supabase-imgproxy
     subPath: ""
     storageClass: ""
     annotations: {}
@@ -1250,10 +1277,15 @@ imgproxy:
     dataSource: {}
 
 s3:
-  enabled: true
   host: minio
   port: 80
   useSSL: false
+  accessKey:
+    secretname: s3-storage
+    keyname: username
+  secretKey:
+    secretname: s3-storage
+    keyname: password
 
 ## @param publicURL Supabase API public URL
 ##
@@ -1269,11 +1301,11 @@ gateway:
   # avoiding a second LoadBalancer (required when sharing ports 80/443 with other workloads).
   create: true
   # Optional override for created gateway name (defaults to <release>-gateway)
-  name: ""
+  name: "traefik"
   # DNS hosts served by the Gateway; use dummy by default
   gatewayClassName: "traefik"
   internalService:
-    externalName: "traefik.kube-system.svc.cluster.local"
+    externalName: ""  # will default to the template "supabase.gateway.ingress.fqdn"
   hosts:
     - supabase.local
   extraHosts: []
@@ -1464,12 +1496,13 @@ meta:
   ## @param meta.customStartupProbe Custom startupProbe that overrides the default one
   ##
   customStartupProbe: {}
+  ## FIXME: replace or remove
   ## Supabase Postgres Meta resource requests and limits
   ## ref: http://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
   ## @param meta.resourcesPreset Set container resources according to one common preset (allowed values: none, nano, micro, small, medium, large, xlarge, 2xlarge). This is ignored if meta.resources is set (meta.resources is recommended for production).
   ## More information: https://github.com/bitnami/charts/blob/main/bitnami/common/templates/_resources.tpl#L15
   ##
-  resourcesPreset: "micro"
+  # resourcesPreset: "micro"
   ## @param meta.resources Set container requests and limits for different resources like CPU or memory (essential for production workloads)
   ## Example:
   ## resources:
@@ -1788,22 +1821,26 @@ realtime:
   existingSecretKey: "key-base"
   ## @param realtime.defaultConfig [string] Default configuration for Supabase realtime
   ##
-  ## FIXME: also had before, maybe put back!
-  ## REPLICATION_MODE: "RLS"
-  ## REPLICATION_POLL_INTERVAL: "100"
-  ## SECURE_CHANNELS: "true"
-  ## SLOT_NAME: "supabase_realtime_rls"
-  ## TEMPORARY_SLOT: "true"
-  defaultConfig: |
-    PORT: {{ .Values.realtime.containerPorts.http | quote }}
-    FLY_ALLOC_ID: "realtime"
-    FLY_APP_NAME: "realtime"
-    ERL_AFLAGS: "-proto_dist inet_tcp"
-    DB_AFTER_CONNECT_QUERY: "SET search_path TO _realtime"
-    DNS_NODES: "''"
-    ENABLE_TAILSCALE: "false"
-    MIX_ENV: "prod"
-    SLOT_NAME_SUFFIX: ""
+  defaultConfig: ""
+    # PORT: {{ .Values.realtime.containerPorts.http | quote }}
+    # FLY_ALLOC_ID: "realtime"
+    # FLY_APP_NAME: "realtime"
+    # ERL_AFLAGS: "-proto_dist inet_tcp"
+    # DB_AFTER_CONNECT_QUERY: "SET search_path TO _realtime"
+    # DNS_NODES: "''"
+    # ENABLE_TAILSCALE: "false"
+    # MIX_ENV: "prod"
+    # SLOT_NAME_SUFFIX: ""
+
+  port: ""
+  flyAllocID: "realtime"
+  flyAppName: "realtime"
+  erlAflags: "-proto_dist inet_tcp"
+  dbAfterConnectQuery: "SET search_path TO _realtime"
+  dnsNodes: "''"
+  enableTailscale: "false"
+  mixEnv: "prod"
+  slotNameSuffix: ""
 
   ## @param realtime.initDefaultTenant [true | false] create the default tenant on initial bootstrap
   initDefaultTenant: "true"
@@ -1907,12 +1944,13 @@ realtime:
   ## @param realtime.customStartupProbe Custom startupProbe that overrides the default one
   ##
   customStartupProbe: {}
+  ## FIXME: replace or remove
   ## Supabase realtime resource requests and limits
   ## ref: http://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
   ## @param realtime.resourcesPreset Set container resources according to one common preset (allowed values: none, nano, micro, small, medium, large, xlarge, 2xlarge). This is ignored if realtime.resources is set (realtime.resources is recommended for production).
   ## More information: https://github.com/bitnami/charts/blob/main/bitnami/common/templates/_resources.tpl#L15
   ##
-  resourcesPreset: "medium"
+  # resourcesPreset: "medium"
   ## @param realtime.resources Set container requests and limits for different resources like CPU or memory (essential for production workloads)
   ## Example:
   ## resources:
@@ -2212,13 +2250,13 @@ rest:
   replicaCount: 1
   ## @param rest.defaultConfig [string] Default configuration for the Supabase rest service
   ##
-  defaultConfig: |
-    PGRST_DB_SCHEMA: "public,storage"
-    PGRST_DB_ANON_ROLE: "anon"
-    PGRST_DB_USE_LEGACY_GUCS: "false"
-    PGRST_SERVER_PORT: {{ .Values.rest.containerPorts.http | quote }}
-    PGRST_DB_SCHEMAS: "public,storage"
-    PGRST_DB_AGGREGATES_ENABLED: "true"
+  anonRole: "anon"
+  dbSchema: "public,storage"
+  dbUseLegacyGucs: "false"
+  dbSchemas: "public,storage"
+  dbAggregatesEnabled: "true"
+
+  defaultConfig: ""
 
   ## @param rest.extraConfig Extra configuration for the Supabase rest service
   ##
@@ -2312,12 +2350,13 @@ rest:
   ## @param rest.customStartupProbe Custom startupProbe that overrides the default one
   ##
   customStartupProbe: {}
+  ## FIXME: replace or remove
   ## Supabase rest resource requests and limits
   ## ref: http://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
   ## @param rest.resourcesPreset Set container resources according to one common preset (allowed values: none, nano, micro, small, medium, large, xlarge, 2xlarge). This is ignored if rest.resources is set (rest.resources is recommended for production).
   ## More information: https://github.com/bitnami/charts/blob/main/bitnami/common/templates/_resources.tpl#L15
   ##
-  resourcesPreset: "micro"
+  # resourcesPreset: "micro"
   ## @param rest.resources Set container requests and limits for different resources like CPU or memory (essential for production workloads)
   ## Example:
   ## resources:
@@ -2633,31 +2672,41 @@ storage:
   ##
   uploadFileSizeLimitStandard: 52428800
 
+  postgrestUrl: "" # defaults to http://<rest-fullname>:<rest-port>
+  port: "" # default to storage.containerPorts.http
+  tenantId: "stub"
+  region: "stub"
+  globalS3Bucket: "stub"
+  dbInstallRoles: "false"
+  pgOptions: "-c search_path=storage,public"
+  globalS3Protocol: "http"
+  globalS3ForcePathStyle: "true"
+  awsDefaultRegion: "stub"
+  tusUrlPath: "/storage/v1/upload/resumable"
+  enableImageTransformation: "true"
+  imgproxyUrl: "" # defaults to http://<imgproxy-fullname>:<imgproxy-port>
+  globalS3Endpoint: "" # defaults to http(s)://<s3-host>:<s3-port>
+
   ## @param storage.defaultConfig [string] Default configuration for Supabase storage
   ##
-  defaultConfig: |
-    POSTGREST_URL: "http://{{ include "supabase.rest.fullname" . }}:{{ .Values.rest.service.ports.http }}"
-    FILE_STORAGE_BACKEND_PATH: {{ .Values.storage.persistence.mountPath | quote }}
-    PORT: {{ .Values.storage.containerPorts.http | quote }}
-    TENANT_ID: "stub"
-    REGION: "stub"
-    GLOBAL_S3_BUCKET: "stub"
-    DB_INSTALL_ROLES: "false"
-    PGOPTIONS: "-c search_path=storage,public"
-    GLOBAL_S3_PROTOCOL: "http"
-    GLOBAL_S3_FORCE_PATH_STYLE: "true"
-    AWS_DEFAULT_REGION: "stub"
-    TUS_URL_PATH: "/storage/v1/upload/resumable"
-    {{- if and .Values.imgproxy.enabled .Values.s3.enabled }}
-    ENABLE_IMAGE_TRANSFORMATION: "true"
-    IMGPROXY_URL: "http://{{ include "supabase.imgproxy.fullname" . }}:{{ .Values.imgproxy.service.ports.http }}"
-    {{- end }}
-    {{- if .Values.s3.enabled }}
-    GLOBAL_S3_ENDPOINT: {{ printf "%s://%s:%v" (ternary "https" "http" .Values.s3.useSSL) .Values.s3.host (.Values.s3.port | int) | quote }}
-    STORAGE_BACKEND: "s3"
-    {{- else }}
-    STORAGE_BACKEND: "file"
-    {{- end }}
+  defaultConfig: ""
+    # POSTGREST_URL: "http://{{ include "supabase.rest.fullname" . }}:{{ .Values.rest.service.ports.http }}"
+    # PORT: {{ .Values.storage.containerPorts.http | quote }}
+    # TENANT_ID: "stub"
+    # REGION: "stub"
+    # GLOBAL_S3_BUCKET: "stub"
+    # DB_INSTALL_ROLES: "false"
+    # PGOPTIONS: "-c search_path=storage,public"
+    # GLOBAL_S3_PROTOCOL: "http"
+    # GLOBAL_S3_FORCE_PATH_STYLE: "true"
+    # AWS_DEFAULT_REGION: "stub"
+    # TUS_URL_PATH: "/storage/v1/upload/resumable"
+    # {{- if .Values.imgproxy.enabled }}
+    # ENABLE_IMAGE_TRANSFORMATION: "true"
+    # IMGPROXY_URL: "http://{{ include "supabase.imgproxy.fullname" . }}:{{ .Values.imgproxy.service.ports.http }}"
+    # {{- end }}
+    # GLOBAL_S3_ENDPOINT: {{ printf "%s://%s:%v" (ternary "https" "http" .Values.s3.useSSL) .Values.s3.host (.Values.s3.port | int) | quote }}
+    # STORAGE_BACKEND: "s3"
 
   ## @param storage.extraConfig Extra configuration for Supabase storage
   ##
@@ -2751,12 +2800,13 @@ storage:
   ## @param storage.customStartupProbe Custom startupProbe that overrides the default one
   ##
   customStartupProbe: {}
+  ## FIXME: replace or remove
   ## Supabase storage resource requests and limits
   ## ref: http://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
   ## @param storage.resourcesPreset Set container resources according to one common preset (allowed values: none, nano, micro, small, medium, large, xlarge, 2xlarge). This is ignored if storage.resources is set (storage.resources is recommended for production).
   ## More information: https://github.com/bitnami/charts/blob/main/bitnami/common/templates/_resources.tpl#L15
   ##
-  resourcesPreset: "medium"
+  # resourcesPreset: "medium"
   ## @param storage.resources Set container requests and limits for different resources like CPU or memory (essential for production workloads)
   ## Example:
   ## resources:
@@ -3063,7 +3113,7 @@ storage:
     enabled: true
     ## @param storage.persistence.mountPath Path to mount the volume at.
     ##
-    mountPath: /bitnami/supabase-storage
+    mountPath: /supabase/supabase-storage
     ## @param storage.persistence.subPath The subdirectory of the volume to mount to, useful in dev environments and one PV for multiple services
     ##
     subPath: ""
@@ -3114,24 +3164,20 @@ studio:
   replicaCount: 1
   ## @param studio.defaultConfig [string] Supabase studio default configuration
   ##
-  defaultConfig: |
-    SUPABASE_URL: http://localhost:8080
-    STUDIO_PG_META_URL: http://localhost:8080/pg
-    SUPABASE_PUBLIC_URL: http://localhost:8080
-    PORT: 3000
+  defaultConfig: ""
+
+  ## @param studio.analytics.backendProvider [string] The backend provider for analytics, "postgres" or "bigquery"
+  ##
+  analytics:
+    backendProvider: postgres
+
   ## @param studio.extraEnvVars Array with extra environment variables to add to Supabase studio nodes
   ## e.g:
   ## extraEnvVars:
   ##   - name: FOO
   ##     value: "bar"
   ##
-  extraEnvVars:
-    # - name: STUDIO_DEFAULT_ORGANIZATION
-    #   value: "default"
-    # - name: STUDIO_DEFAULT_PROJECT
-    #   value: "default"
-    - name: NEXT_ANALYTICS_BACKEND_PROVIDER
-      value: postgres  # postgres, bigquery
+  extraEnvVars: {}
 
   ## @param studio.extraConfig Supabase studio extra configuration
   ##
@@ -3224,12 +3270,13 @@ studio:
   ## @param studio.customStartupProbe Custom startupProbe that overrides the default one
   ##
   customStartupProbe: {}
+    ## FIXME: replace or remove
   ## Supabase studio resource requests and limits
   ## ref: http://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
   ## @param studio.resourcesPreset Set container resources according to one common preset (allowed values: none, nano, micro, small, medium, large, xlarge, 2xlarge). This is ignored if studio.resources is set (studio.resources is recommended for production).
   ## More information: https://github.com/bitnami/charts/blob/main/bitnami/common/templates/_resources.tpl#L15
   ##
-  resourcesPreset: "micro"
+  # resourcesPreset: "micro"
   ## @param studio.resources Set container requests and limits for different resources like CPU or memory (essential for production workloads)
   ## Example:
   ## resources:
@@ -3629,7 +3676,7 @@ volumePermissions:
   ##
   enabled: false
   ## OS Shell + Utility image
-  ## ref: https://hub.docker.com/r/bitnami/os-shell/tags/
+  ## ref: https://hub.docker.com/r/bitnamilegacy/os-shell/tags/
   ## @param volumePermissions.image.registry [default: REGISTRY_NAME] OS Shell + Utility image registry
   ## @param volumePermissions.image.repository [default: REPOSITORY_NAME/os-shell] OS Shell + Utility image repository
   ## @skip volumePermissions.image.tag OS Shell + Utility image tag (immutable tags are recommended)
@@ -3639,7 +3686,7 @@ volumePermissions:
   image:
     registry: docker.io
     repository: bitnamilegacy/os-shell
-    tag: 12-debian-12-r22
+    tag: 12-debian-12-r51
     pullPolicy: IfNotPresent
     ## Optionally specify an array of imagePullSecrets.
     ## Secrets must be manually created in the namespace.
@@ -3649,12 +3696,14 @@ volumePermissions:
     ##   - myRegistryKeySecretName
     ##
     pullSecrets: []
+
+  ## FIXME: replace or remove
   ## Init container's resource requests and limits
   ## ref: http://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
   ## @param volumePermissions.resourcesPreset Set container resources according to one common preset (allowed values: none, nano, micro, small, medium, large, xlarge, 2xlarge). This is ignored if volumePermissions.resources is set (volumePermissions.resources is recommended for production).
   ## More information: https://github.com/bitnami/charts/blob/main/bitnami/common/templates/_resources.tpl#L15
   ##
-  resourcesPreset: "micro"
+  # resourcesPreset: "micro"
   ## @param volumePermissions.resources Set container requests and limits for different resources like CPU or memory (essential for production workloads)
   ## Example:
   ## resources:
@@ -3751,11 +3800,8 @@ externalDatabase:
   existingSecretPasswordKey: ""
 
 vector:
-  # FIXME: check this still works... docker-compose is still using `image: timberio/vector:0.28.1-alpine`
   image:
     tag: 0.50.0-debian
-  # command: [ "/bin/bash", "-c", "--" ]
-  # args: [ "while true; do sleep 10; done;" ]
 
   dataDir: "/vector-data-dir"
   role: "Agent"

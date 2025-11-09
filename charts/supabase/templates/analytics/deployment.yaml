@@ -188,8 +188,6 @@ spec:
             {{- end }}
           {{- if .Values.analytics.resources }}
           resources: {{- toYaml .Values.analytics.resources | nindent 12 }}
-          {{- else if ne .Values.analytics.resourcesPreset "none" }}
-          resources: {{- include "common.resources.preset" (dict "type" .Values.analytics.resourcesPreset) | nindent 12 }}
           {{- end }}
           ports:
             - name: http-analytics

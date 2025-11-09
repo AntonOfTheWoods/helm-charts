@@ -193,8 +193,6 @@ spec:
             {{- end }}
           {{- if .Values.functions.resources }}
           resources: {{- toYaml .Values.functions.resources | nindent 12 }}
-          {{- else if ne .Values.functions.resourcesPreset "none" }}
-          resources: {{- include "common.resources.preset" (dict "type" .Values.functions.resourcesPreset) | nindent 12 }}
           {{- end }}
           ports:
             - name: http

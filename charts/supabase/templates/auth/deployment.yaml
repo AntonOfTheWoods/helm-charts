@@ -1,8 +1,3 @@
-{{- /*
-Copyright Broadcom, Inc. All Rights Reserved.
-SPDX-License-Identifier: APACHE-2.0
-*/}}
-
 {{- if .Values.auth.enabled }}
 apiVersion: {{ include "common.capabilities.deployment.apiVersion" . }}
 kind: Deployment
@@ -112,6 +107,9 @@ spec:
             - name: DB_SSL
               value: {{ .Values.dbSSL | quote }}
 
+            - name: LOG_LEVEL
+              value: {{ .Values.auth.logLevel | quote }}
+
             - name: GOTRUE_DB_DATABASE_URL
               value: "postgresql://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?search_path=auth&sslmode=$(DB_SSL)"
             - name: GOTRUE_JWT_SECRET
@@ -124,6 +122,133 @@ spec:
                 secretKeyRef:
                   name: {{ include "supabase.jwt.secretName" . }}
                   key: {{ include "supabase.jwt.secretKey" . }}
+
+            - name: GOTRUE_API_HOST
+              value: {{ .Values.auth.apiHost | quote }}
+
+            - name: GOTRUE_API_PORT
+            {{- if .Values.auth.apiPort }}
+              value: {{ .Values.auth.apiPort | quote }}
+            {{- else }}
+              value: {{ .Values.auth.containerPorts.http | quote }}
+            {{- end }}
+
+            - name: GOTRUE_SITE_URL
+              value: {{ .Values.auth.siteUrl | quote }}
+
+            - name: GOTRUE_MAILER_EXTERNAL_HOSTS
+              value: {{ .Values.auth.mailer.externalHosts | quote }}
+
+            - name: API_EXTERNAL_URL
+            {{- if .Values.auth.apiExternalURL }}
+              value: {{ .Values.auth.apiExternalURL | quote }}
+            {{- else }}
+              value: {{ .Values.publicURL | quote }}
+            {{- end }}
+
+            - name: GOTRUE_API_EXTERNAL_URL
+              value: $(API_EXTERNAL_URL)
+            - name: GOTRUE_URI_ALLOW_LIST
+              value: {{ .Values.auth.uriAllowList | quote }}
+            - name: GOTRUE_DB_DRIVER
+              value: {{ .Values.auth.dbDriver | quote }}
+            - name: GOTRUE_DB_MIGRATIONS_PATH
+              value: {{ .Values.auth.dbMigrationsPath | quote }}
+            - name: GOTRUE_JWT_DEFAULT_GROUP_NAME
+              value: {{ .Values.auth.jwtDefaultGroupName | quote }}
+            - name: GOTRUE_JWT_ADMIN_ROLES
+              value: {{ .Values.auth.jwtAdminRoles | quote }}
+            - name: GOTRUE_JWT_AUD
+              value: {{ .Values.auth.jwtAud | quote }}
+            - name: GOTRUE_JWT_EXP
+              value: {{ .Values.auth.jwtExp | quote }}
+            # FIXME: decide whether the exp is really in a secret
+            # - name: GOTRUE_JWT_EXP
+            #   valueFrom:
+            #     secretKeyRef:
+            #       name: supabase-jwt
+            #       key: expiry
+
+            - name: GOTRUE_DISABLE_SIGNUP
+              value: {{ .Values.auth.disableSignup | quote }}
+            - name: GOTRUE_EXTERNAL_EMAIL_ENABLED
+              value: {{ .Values.auth.externalEmailEnabled | quote }}
+            - name: GOTRUE_MAILER_AUTOCONFIRM
+              value: {{ .Values.auth.mailerAutoconfirm | quote }}
+            - name: GOTRUE_SMTP_ADMIN_EMAIL
+              value: {{ .Values.auth.smtpAdminEmail | quote }}
+            - name: GOTRUE_SMTP_HOST
+              value: {{ .Values.auth.smtpHost | quote }}
+            - name: GOTRUE_SMTP_PORT
+              value: {{ .Values.auth.smtpPort | quote }}
+            - name: GOTRUE_SMTP_SENDER_NAME
+              value: {{ .Values.auth.smtpSenderName | quote }}
+
+            - name: GOTRUE_SMTP_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.auth.smtpUser.secretname | default "supabase-smtp" }}
+                  key: {{ .Values.auth.smtpUser.keyname | default "username" }}
+            - name: GOTRUE_SMTP_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.auth.smtpPass.secretname | default "supabase-smtp" }}
+                  key: {{ .Values.auth.smtpPass.keyname | default "password" }}
+
+            - name: GOTRUE_EXTERNAL_PHONE_ENABLED
+              value: {{ .Values.auth.externalPhoneEnabled | quote }}
+            - name: GOTRUE_SMS_AUTOCONFIRM
+              value: {{ .Values.auth.smsAutoconfirm | quote }}
+
+            - name: GOTRUE_MAILER_URLPATHS_INVITE
+            {{- if .Values.auth.mailer.urlPaths.invite }}
+              value: {{ .Values.auth.mailer.urlPaths.invite | quote }}
+            {{- else }}
+              value: "{{ include "supabase.api.publicURL" . }}/auth/v1/verify"
+            {{- end }}
+
+            - name: GOTRUE_MAILER_URLPATHS_CONFIRMATION
+            {{- if .Values.auth.mailer.urlPaths.confirmation }}
+              value: {{ .Values.auth.mailer.urlPaths.confirmation | quote }}
+            {{- else }}
+              value: "{{ include "supabase.api.publicURL" . }}/auth/v1/verify"
+            {{- end }}
+
+            - name: GOTRUE_MAILER_URLPATHS_RECOVERY
+            {{- if .Values.auth.mailer.urlPaths.recovery }}
+              value: {{ .Values.auth.mailer.urlPaths.recovery | quote }}
+            {{- else }}
+              value: "{{ include "supabase.api.publicURL" . }}/auth/v1/verify"
+            {{- end }}
+
+            - name: GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE
+            {{- if .Values.auth.mailer.urlPaths.emailChange }}
+              value: {{ .Values.auth.mailer.urlPaths.emailChange | quote }}
+            {{- else }}
+              value: "{{ include "supabase.api.publicURL" . }}/auth/v1/verify"
+            {{- end }}
+
+            - name: GOTRUE_MAILER_SUBJECTS_CONFIRMATION
+              value: {{ .Values.auth.mailer.subjects.confirmation | quote }}
+            - name: GOTRUE_MAILER_SUBJECTS_INVITE
+              value: {{ .Values.auth.mailer.subjects.invite | quote }}
+            - name: GOTRUE_MAILER_SUBJECTS_RECOVERY
+              value: {{ .Values.auth.mailer.subjects.recovery | quote }}
+            - name: GOTRUE_MAILER_SUBJECTS_MAGIC_LINK
+              value: {{ .Values.auth.mailer.subjects.magicLink | quote }}
+            - name: GOTRUE_MAILER_SUBJECTS_EMAIL_CHANGE
+              value: {{ .Values.auth.mailer.subjects.emailChange | quote }}
+            - name: GOTRUE_MAILER_TEMPLATES_INVITE
+              value: {{ .Values.auth.mailer.templates.invite | quote }}
+            - name: GOTRUE_MAILER_TEMPLATES_CONFIRMATION
+              value: {{ .Values.auth.mailer.templates.confirmation | quote }}
+            - name: GOTRUE_MAILER_TEMPLATES_RECOVERY
+              value: {{ .Values.auth.mailer.templates.recovery | quote }}
+            - name: GOTRUE_MAILER_TEMPLATES_MAGIC_LINK
+              value: {{ .Values.auth.mailer.templates.magicLink | quote }}
+            - name: GOTRUE_MAILER_TEMPLATES_EMAIL_CHANGE
+              value: {{ .Values.auth.mailer.templates.emailChange | quote }}
+
             {{- if .Values.auth.extraEnvVars }}
             {{- include "common.tplvalues.render" (dict "value" .Values.auth.extraEnvVars "context" $) | nindent 12 }}
             {{- end }}
@@ -144,8 +269,6 @@ spec:
             {{- end }}
           {{- if .Values.auth.resources }}
           resources: {{- toYaml .Values.auth.resources | nindent 12 }}
-          {{- else if ne .Values.auth.resourcesPreset "none" }}
-          resources: {{- include "common.resources.preset" (dict "type" .Values.auth.resourcesPreset) | nindent 12 }}
           {{- end }}
           ports:
             - name: http

@@ -171,19 +171,61 @@ spec:
             - name: UPLOAD_FILE_SIZE_LIMIT_STANDARD
               value: {{ .Values.storage.uploadFileSizeLimitStandard | quote }}
 
-            # ANON_KEY: ${ANON_KEY}
-            # SERVICE_KEY: ${SERVICE_ROLE_KEY}
-            # POSTGREST_URL: http://rest:3000
-            # DATABASE_URL: postgres://supabase_storage_admin:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
-            # FILE_SIZE_LIMIT: 52428800
-            # STORAGE_BACKEND: file
-            # FILE_STORAGE_BACKEND_PATH: /var/lib/storage
-            # TENANT_ID: stub
-            # # TODO: https://github.com/supabase/storage-api/issues/55
-            # REGION: stub
-            # GLOBAL_S3_BUCKET: stub
-            # ENABLE_IMAGE_TRANSFORMATION: "true"
-            # IMGPROXY_URL: http://imgproxy:5001
+            - name: POSTGREST_URL
+              value: "http://{{ include "supabase.rest.fullname" . }}:{{ .Values.rest.service.ports.http }}"
+            - name: FILE_STORAGE_BACKEND_PATH
+              value: {{ .Values.storage.persistence.mountPath | quote }}
+            - name: PORT
+              value: {{ .Values.storage.containerPorts.http | quote }}
+            - name: TENANT_ID
+              value: {{ .Values.storage.tenantID | default "stub" | quote }}
+            - name: REGION
+              value: {{ .Values.storage.region | default "stub" | quote }}
+            - name: GLOBAL_S3_BUCKET
+              value: {{ .Values.storage.globalS3Bucket | default "stub" | quote }}
+            - name: DB_INSTALL_ROLES
+              value: {{ .Values.storage.dbInstallRoles | default "false" | quote }}
+            - name: PGOPTIONS
+              value: {{ .Values.storage.pgOptions | default "-c search_path=storage,public" | quote }}
+            - name: GLOBAL_S3_PROTOCOL
+              value: {{ .Values.storage.globalS3Protocol | default (ternary "https" "http" .Values.s3.useSSL) | quote }}
+            - name: GLOBAL_S3_FORCE_PATH_STYLE
+              value: {{ .Values.storage.globalS3ForcePathStyle | default "true" | quote }}
+            - name: AWS_DEFAULT_REGION
+              value: {{ .Values.storage.awsDefaultRegion | default "stub" | quote }}
+            - name: TUS_URL_PATH
+              value: {{ .Values.storage.tusURLPath | default "/storage/v1/upload/resumable" | quote }}
+            {{- if .Values.imgproxy.enabled }}
+            - name: ENABLE_IMAGE_TRANSFORMATION
+              value: {{ .Values.storage.enableImageTransformation | default "true" | quote }}
+            - name: IMGPROXY_URL
+            {{- if .Values.storage.imgproxyUrl }}
+              value: {{ .Values.storage.imgproxyUrl | quote }}
+            {{- else }}
+              value: "http://{{ include "supabase.imgproxy.fullname" . }}:{{ .Values.imgproxy.service.ports.http }}"
+            {{- end }}
+            {{- end }}
+
+            - name: GLOBAL_S3_ENDPOINT
+            {{- if .Values.storage.globalS3Endpoint }}
+              value: {{ .Values.storage.globalS3Endpoint | quote }}
+            {{- else }}
+              value: {{ printf "%s://%s:%v" (ternary "https" "http" .Values.s3.useSSL) .Values.s3.host (.Values.s3.port | int) | quote }}
+            {{- end }}
+
+            # TODO: decide whether we should support something else
+            - name: STORAGE_BACKEND
+              value: "s3"
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.s3.accessKey.secretname | default "s3-storage" }}
+                  key: {{ .Values.s3.accessKey.keyname | default "username" }}
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.s3.secretKey.secretname | default "s3-storage" }}
+                  key: {{ .Values.s3.secretKey.keyname | default "password" }}
 
           envFrom:
             - configMapRef:
@@ -202,8 +244,6 @@ spec:
             {{- end }}
           {{- if .Values.storage.resources }}
           resources: {{- toYaml .Values.storage.resources | nindent 12 }}
-          {{- else if ne .Values.storage.resourcesPreset "none" }}
-          resources: {{- include "common.resources.preset" (dict "type" .Values.storage.resourcesPreset) | nindent 12 }}
           {{- end }}
           ports:
             - name: http

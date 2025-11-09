@@ -145,6 +145,36 @@ spec:
             - name: SEED_SELF_HOST
               value: "true"
 
+            - name: PORT
+            {{- if .Values.realtime.port }}
+              value: {{ .Values.realtime.port | quote }}
+            {{- else }}
+              value: {{ .Values.realtime.containerPorts.http | quote }}
+            {{- end }}
+            - name: FLY_ALLOC_ID
+              value: {{ .Values.realtime.flyAllocID | quote }}
+            - name: FLY_APP_NAME
+              value: {{ .Values.realtime.flyAppName | quote }}
+            - name: ERL_AFLAGS
+              value: {{ .Values.realtime.erlAflags | quote }}
+            - name: DB_AFTER_CONNECT_QUERY
+              value: {{ .Values.realtime.dbAfterConnectQuery | quote }}
+            - name: DNS_NODES
+              value: {{ .Values.realtime.dnsNodes | quote }}
+            - name: ENABLE_TAILSCALE
+              value: {{ .Values.realtime.enableTailscale | quote }}
+            - name: MIX_ENV
+              value: {{ .Values.realtime.mixEnv | quote }}
+            - name: SLOT_NAME_SUFFIX
+              value: {{ .Values.realtime.slotNameSuffix | quote }}
+
+            ## FIXME: also had before, maybe put back!
+            ## REPLICATION_MODE: "RLS"
+            ## REPLICATION_POLL_INTERVAL: "100"
+            ## SECURE_CHANNELS: "true"
+            ## SLOT_NAME: "supabase_realtime_rls"
+            ## TEMPORARY_SLOT: "true"
+
             {{- if .Values.realtime.extraEnvVars }}
             {{- include "common.tplvalues.render" (dict "value" .Values.realtime.extraEnvVars "context" $) | nindent 12 }}
             {{- end }}
@@ -165,8 +195,6 @@ spec:
             {{- end }}
           {{- if .Values.realtime.resources }}
           resources: {{- toYaml .Values.realtime.resources | nindent 12 }}
-          {{- else if ne .Values.realtime.resourcesPreset "none" }}
-          resources: {{- include "common.resources.preset" (dict "type" .Values.realtime.resourcesPreset) | nindent 12 }}
           {{- end }}
           ports:
             - name: http

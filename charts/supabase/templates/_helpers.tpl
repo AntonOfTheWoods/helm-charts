@@ -75,7 +75,6 @@ Resolve the Service name backing the Gateway used for Supabase ingress.
 {{- printf "%s.%s.svc.%s" $svc $ns .Values.clusterDomain -}}
 {{- end -}}
 
-
 {{- define "supabase.api.baseHttp" -}}
 {{- printf "http://%s" (include "supabase.api.baseHost" .) -}}
 {{- end -}}
