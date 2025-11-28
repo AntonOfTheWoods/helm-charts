@@ -21,4 +21,4 @@ maintainers:
 name: supabase
 sources:
 - https://github.com/supafull/supabase
-version: 0.0.13
+version: 0.0.14

@@ -403,7 +403,7 @@ analytics:
   image:
     registry: docker.io
     repository: supabase/logflare
-    tag: 1.26.7
+    tag: 1.26.14
     pullPolicy: IfNotPresent
     digest: ""
     pullSecrets: []
@@ -618,7 +618,7 @@ auth:
   image:
     registry: docker.io
     repository: supabase/auth
-    tag: v2.182.1
+    tag: v2.183.0
     digest: ""
     ## Specify a imagePullPolicy
     ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
@@ -1872,7 +1872,7 @@ realtime:
   image:
     registry: docker.io
     repository: supabase/realtime
-    tag: v2.59.1
+    tag: v2.66.1
     digest: ""
     ## Specify a imagePullPolicy
     ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
@@ -2727,7 +2727,7 @@ storage:
   image:
     registry: docker.io
     repository: supabase/storage-api
-    tag: v1.31.1
+    tag: v1.32.0
 
     digest: ""
     ## Specify a imagePullPolicy
@@ -3198,7 +3198,7 @@ studio:
   image:
     registry: docker.io
     repository: supabase/studio
-    tag: 2025.11.10-sha-5291fe3
+    tag: 2025.11.26-sha-8f096b5
     digest: ""
     ## Specify a imagePullPolicy
     ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
@@ -3802,6 +3802,7 @@ externalDatabase:
 vector:
   image:
     tag: 0.51.1-debian
+    # tag: 0.51.1-distroless-libc
 
   dataDir: "/vector-data-dir"
   role: "Agent"
