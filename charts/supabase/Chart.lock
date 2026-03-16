@@ -1,6 +1,6 @@
 dependencies:
 - name: vector
-  repository: https://helm.vector.dev
-  version: 0.48.0
-digest: sha256:575d515bfde9fc37d792640675a171b0106a69393d99b4b2ebf39df442ff1e90
-generated: "2025-11-19T12:10:41.866366506+08:00"
+  repository: oci://ghcr.io/vectordotdev/helm-charts
+  version: 0.51.0
+digest: sha256:15d321b9b60744c54a878cdee592b4ff5c0bbed35a1ef7a66479bddd10d39b4a
+generated: "2026-03-16T14:51:35.507818035+08:00"

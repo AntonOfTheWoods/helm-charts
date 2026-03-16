@@ -3,11 +3,10 @@ annotations:
 apiVersion: v2
 appVersion: 1.24.4
 dependencies:
-
 - name: vector
   version: 0.x.x
-  repository: https://helm.vector.dev
   condition: analytics.enabled
+  repository: oci://ghcr.io/vectordotdev/helm-charts
 
 description: Supabase is an open source Firebase alternative. Provides all the necessary backend features to build your application in a scalable way. Uses PostgreSQL as datastore.
 home: https://github.com/supafull/
