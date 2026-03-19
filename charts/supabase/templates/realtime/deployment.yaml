@@ -113,6 +113,26 @@ spec:
             - name: DB_SSL
               value: {{ if eq .Values.dbSSL "disable" }}"false"{{ else }}"true"{{ end }}
 
+            # FIXME: add the other options on https://github.com/supabase/realtime
+            - name: DASHBOARD_AUTH
+              value: "true"
+
+            - name: DASHBOARD_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.realtime.dashboard.existingSecret.name | quote }}
+                  key: {{ .Values.realtime.dashboard.existingSecret.usernameKey | quote }}
+            - name: DASHBOARD_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.realtime.dashboard.existingSecret.name | quote }}
+                  key: {{ .Values.realtime.dashboard.existingSecret.passwordKey | quote }}
+
+            - name: METRICS_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.jwt.secretName" . | quote }}
+                  key: {{ include "supabase.jwt.secretKey" . | quote }}
             - name: API_JWT_SECRET
               valueFrom:
                 secretKeyRef:
