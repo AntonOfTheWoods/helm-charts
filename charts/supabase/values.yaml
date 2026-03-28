@@ -237,9 +237,9 @@ jwt:
       ## @param jwt.autoGenerate.networkPolicy.kubeAPIServerPorts [array] List of possible endpoints to kube-apiserver (limit to your cluster settings to increase security)
       ##
       kubeAPIServerPorts: [443, 6443, 8443]
-      ## @param jwt.autoGenerate.networkPolicy.extraRoutes [array] Add extra ingress rules to the NetworkPolicy
+      ## @param jwt.autoGenerate.networkPolicy.extraIngress [array] Add extra ingress rules to the NetworkPolicy
       ## e.g:
-      ## extraRoutes:
+      ## extraIngress:
       ##   - ports:
       ##       - port: 1234
       ##     from:
@@ -253,7 +253,7 @@ jwt:
       ##                 values:
       ##                   - frontend
       ##
-      extraRoutes: []
+      extraIngress: []
       ## @param jwt.autoGenerate.networkPolicy.extraEgress [array] Add extra ingress rules to the NetworkPolicy
       ## e.g:
       ## extraEgress:
@@ -513,7 +513,7 @@ analytics:
     enabled: true
     allowExternal: true
     allowExternalEgress: true
-    extraRoutes: []
+    extraIngress: []
     extraEgress: []
     ingressNSMatchLabels: {}
     ingressNSPodMatchLabels: {}
@@ -952,9 +952,9 @@ auth:
     ## @param auth.networkPolicy.allowExternalEgress Allow the pod to access any range of port and all destinations.
     ##
     allowExternalEgress: true
-    ## @param auth.networkPolicy.extraRoutes [array] Add extra ingress rules to the NetworkPolicy
+    ## @param auth.networkPolicy.extraIngress [array] Add extra ingress rules to the NetworkPolicy
     ## e.g:
-    ## extraRoutes:
+    ## extraIngress:
     ##   - ports:
     ##       - port: 1234
     ##     from:
@@ -967,7 +967,7 @@ auth:
     ##                 operator: In
     ##                 values:
     ##                   - frontend
-    extraRoutes: []
+    extraIngress: []
     ## @param auth.networkPolicy.extraEgress [array] Add extra ingress rules to the NetworkPolicy
     ## e.g:
     ## extraEgress:
@@ -1122,7 +1122,7 @@ functions:
     enabled: true
     allowExternal: true
     allowExternalEgress: true
-    extraRoutes: []
+    extraIngress: []
     extraEgress: []
     ingressNSMatchLabels: {}
     ingressNSPodMatchLabels: {}
@@ -1259,7 +1259,7 @@ imgproxy:
     enabled: true
     allowExternal: true
     allowExternalEgress: true
-    extraRoutes: []
+    extraIngress: []
     extraEgress: []
     ingressNSMatchLabels: {}
     ingressNSPodMatchLabels: {}
@@ -1760,9 +1760,9 @@ meta:
     ## @param meta.networkPolicy.allowExternalEgress Allow the pod to access any range of port and all destinations.
     ##
     allowExternalEgress: true
-    ## @param meta.networkPolicy.extraRoutes [array] Add extra ingress rules to the NetworkPolicy
+    ## @param meta.networkPolicy.extraIngress [array] Add extra ingress rules to the NetworkPolicy
     ## e.g:
-    ## extraRoutes:
+    ## extraIngress:
     ##   - ports:
     ##       - port: 1234
     ##     from:
@@ -1775,7 +1775,7 @@ meta:
     ##                 operator: In
     ##                 values:
     ##                   - frontend
-    extraRoutes: []
+    extraIngress: []
     ## @param meta.networkPolicy.extraEgress [array] Add extra ingress rules to the NetworkPolicy
     ## e.g:
     ## extraEgress:
@@ -2208,9 +2208,9 @@ realtime:
     ## @param realtime.networkPolicy.allowExternalEgress Allow the pod to access any range of port and all destinations.
     ##
     allowExternalEgress: true
-    ## @param realtime.networkPolicy.extraRoutes [array] Add extra ingress rules to the NetworkPolicy
+    ## @param realtime.networkPolicy.extraIngress [array] Add extra ingress rules to the NetworkPolicy
     ## e.g:
-    ## extraRoutes:
+    ## extraIngress:
     ##   - ports:
     ##       - port: 1234
     ##     from:
@@ -2223,7 +2223,7 @@ realtime:
     ##                 operator: In
     ##                 values:
     ##                   - frontend
-    extraRoutes: []
+    extraIngress: []
     ## @param realtime.networkPolicy.extraEgress [array] Add extra ingress rules to the NetworkPolicy
     ## e.g:
     ## extraEgress:
@@ -2620,9 +2620,9 @@ rest:
     ## @param rest.networkPolicy.allowExternalEgress Allow the pod to access any range of port and all destinations.
     ##
     allowExternalEgress: true
-    ## @param rest.networkPolicy.extraRoutes [array] Add extra ingress rules to the NetworkPolicy
+    ## @param rest.networkPolicy.extraIngress [array] Add extra ingress rules to the NetworkPolicy
     ## e.g:
-    ## extraRoutes:
+    ## extraIngress:
     ##   - ports:
     ##       - port: 1234
     ##     from:
@@ -2635,7 +2635,7 @@ rest:
     ##                 operator: In
     ##                 values:
     ##                   - frontend
-    extraRoutes: []
+    extraIngress: []
     ## @param rest.networkPolicy.extraEgress [array] Add extra ingress rules to the NetworkPolicy
     ## e.g:
     ## extraEgress:
@@ -3070,9 +3070,9 @@ storage:
     ## @param storage.networkPolicy.allowExternalEgress Allow the pod to access any range of port and all destinations.
     ##
     allowExternalEgress: true
-    ## @param storage.networkPolicy.extraRoutes [array] Add extra ingress rules to the NetworkPolicy
+    ## @param storage.networkPolicy.extraIngress [array] Add extra ingress rules to the NetworkPolicy
     ## e.g:
-    ## extraRoutes:
+    ## extraIngress:
     ##   - ports:
     ##       - port: 1234
     ##     from:
@@ -3085,7 +3085,7 @@ storage:
     ##                 operator: In
     ##                 values:
     ##                   - frontend
-    extraRoutes: []
+    extraIngress: []
     ## @param storage.networkPolicy.extraEgress [array] Add extra ingress rules to the NetworkPolicy
     ## e.g:
     ## extraEgress:
@@ -3533,9 +3533,9 @@ studio:
     ## @param studio.networkPolicy.allowExternalEgress Allow the pod to access any range of port and all destinations.
     ##
     allowExternalEgress: true
-    ## @param studio.networkPolicy.extraRoutes [array] Add extra ingress rules to the NetworkPolicy
+    ## @param studio.networkPolicy.extraIngress [array] Add extra ingress rules to the NetworkPolicy
     ## e.g:
-    ## extraRoutes:
+    ## extraIngress:
     ##   - ports:
     ##       - port: 1234
     ##     from:
@@ -3548,7 +3548,7 @@ studio:
     ##                 operator: In
     ##                 values:
     ##                   - frontend
-    extraRoutes: []
+    extraIngress: []
     ## @param studio.networkPolicy.extraEgress [array] Add extra ingress rules to the NetworkPolicy
     ## e.g:
     ## extraEgress:

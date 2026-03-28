@@ -82,7 +82,7 @@ spec:
           {{- end }}
         {{- end }}
       {{- end }}
-    {{- if .Values.realtime.networkPolicy.extraRoutes }}
-    {{- include "common.tplvalues.render" ( dict "value" .Values.realtime.networkPolicy.extraRoutes "context" $ ) | nindent 4 }}
+    {{- if .Values.realtime.networkPolicy.extraIngress }}
+    {{- include "common.tplvalues.render" ( dict "value" .Values.realtime.networkPolicy.extraIngress "context" $ ) | nindent 4 }}
     {{- end }}
 {{- end }}
