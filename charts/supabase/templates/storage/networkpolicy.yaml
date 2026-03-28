@@ -92,7 +92,7 @@ spec:
           {{- end }}
         {{- end }}
       {{- end }}
-    {{- if .Values.storage.networkPolicy.extraIngress }}
-    {{- include "common.tplvalues.render" ( dict "value" .Values.storage.networkPolicy.extraIngress "context" $ ) | nindent 4 }}
+    {{- if .Values.storage.networkPolicy.extraRoutes }}
+    {{- include "common.tplvalues.render" ( dict "value" .Values.storage.networkPolicy.extraRoutes "context" $ ) | nindent 4 }}
     {{- end }}
 {{- end }}

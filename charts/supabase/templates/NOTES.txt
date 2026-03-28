@@ -25,8 +25,8 @@ The following elements have been deployed
   - studio
 {{- end }}
 
-Ingress (Gateway API) if enabled:
 {{- if .Values.istio.enabled }}
+Routes (Gateway API) if enabled:
   Gateway: {{ include "supabase.gateway.ingress.namespace" . }}/{{ include "common.names.fullname" . }}-gateway (gateway.networking.k8s.io)
   HTTPRoute: {{ include "common.names.namespace" . }}/{{ include "common.names.fullname" . }}-api
 

@@ -1,0 +1,17 @@
+{{- if .Values.gateway.create }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: {{ .Values.gateway.name }}
+  namespace: {{ include "common.names.namespace" . }}
+spec:
+  gatewayClassName: {{ .Values.gateway.gatewayClassName }}
+  listeners:
+    - name: http
+      hostname: dummy
+      protocol: HTTP
+      port: 80
+  allowedListeners:
+    namespaces:
+      from: All
+{{- end }}

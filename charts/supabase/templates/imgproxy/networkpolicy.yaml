@@ -87,7 +87,7 @@ spec:
           {{- end }}
         {{- end }}
       {{- end }}
-    {{- if .Values.imgproxy.networkPolicy.extraIngress }}
-    {{- include "common.tplvalues.render" ( dict "value" .Values.imgproxy.networkPolicy.extraIngress "context" $ ) | nindent 4 }}
+    {{- if .Values.imgproxy.networkPolicy.extraRoutes }}
+    {{- include "common.tplvalues.render" ( dict "value" .Values.imgproxy.networkPolicy.extraRoutes "context" $ ) | nindent 4 }}
     {{- end }}
 {{- end }}
