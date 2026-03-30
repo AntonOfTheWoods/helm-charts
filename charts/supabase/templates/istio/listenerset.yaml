@@ -1,0 +1,37 @@
+{{- if .Values.gateway.enabled }}
+{{- $hosts := concat (.Values.gateway.hosts | default list) (.Values.gateway.extraHosts | default list) -}}
+{{- $autoGwName := printf "%s-gateway" (include "common.names.fullname" .) -}}
+{{- $createdGwName := .Values.gateway.name | default $autoGwName -}}
+{{- $parentGwName := ternary $createdGwName (.Values.gateway.existing.name) ( .Values.gateway.create ) -}}
+{{- $parentGwNamespace := (ternary (.Values.gateway.namespace | default (include "supabase.gateway.ingress.namespace" .)) (.Values.gateway.existing.namespace) (.Values.gateway.create)) -}}
+kind: ListenerSet
+apiVersion: gateway.networking.k8s.io/v1
+metadata:
+  name: {{ .Values.gateway.listenerset.name | default (printf "%s-gateway" (include "common.names.fullname" .)) }}
+  {{- if .Values.gateway.listenerset.annotations }}
+  annotations: {{- include "common.tplvalues.render" (dict "value" .Values.gateway.listenerset.annotations "context" $) | nindent 4 }}
+  {{- end }}
+spec:
+  parentRef:
+    name: {{ $parentGwName }}
+    namespace: {{ $parentGwNamespace }}
+  listeners:
+{{- range $host := $hosts }}
+  - name: {{ (printf "http-%s" ($host.name | replace "." "-")) | quote }}
+    hostname: {{ $host.name | quote }}
+    port: {{ $host.port | default 80 }}
+    protocol: HTTP
+
+  {{- if (get $host "tls" | default dict).enabled }}
+  {{- $tls := get $host "tls" | default dict }}
+  - name: {{ (printf "https-%s" ($host.name | replace "." "-")) | quote }}
+    hostname: {{ $host.name | quote }}
+    port: {{ $tls.port | default 443 }}
+    protocol: HTTPS
+    tls:
+      mode: Terminate
+      certificateRefs:
+        - name: {{ $tls.certName }}
+  {{- end }}
+{{- end }}
+{{- end }}

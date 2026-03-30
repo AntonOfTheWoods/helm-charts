@@ -13,10 +13,14 @@ metadata:
     app.kubernetes.io/component: ingress
 spec:
   parentRefs:
-    - group: gateway.networking.k8s.io
-      kind: Gateway
-      name: {{ $parentGwName }}
-      namespace: {{ $parentGwNamespace }}
+    - kind: ListenerSet
+      name: {{ .Values.gateway.listenerset.name | default (printf "%s-gateway" (include "common.names.fullname" .)) }}
+
+  # parentRefs:
+  #   - group: gateway.networking.k8s.io
+  #     kind: Gateway
+  #     name: {{ $parentGwName }}
+  #     namespace: {{ $parentGwNamespace }}
   hostnames:
     {{- include "supabase.gateway.validatedHosts" . | nindent 4 }}
     - {{ include "supabase.api.baseHost" . | quote }}

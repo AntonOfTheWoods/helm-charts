@@ -86,7 +86,7 @@ Resolve the Service name backing the Gateway used for Supabase ingress.
 {{- fail "You must set at least one host in gateway.hosts (values.yaml)" -}}
 {{- end -}}
 {{- range $h }}
-- {{ . | quote }}
+- {{ .name | quote }}
 {{- end -}}
 {{- end -}}
 

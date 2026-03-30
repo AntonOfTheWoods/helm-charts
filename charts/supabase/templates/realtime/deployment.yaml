@@ -165,6 +165,15 @@ spec:
             - name: SEED_SELF_HOST
               value: "true"
 
+            - name: REALTIME_HOST
+              value: "0.0.0.0"
+            - name: HOST
+              value: "0.0.0.0"
+            - name: HOSTNAME
+              value: "0.0.0.0"
+            - name: TRANSPORT_OPTIONS_INET6
+              value: "false"
+
             - name: PORT
             {{- if .Values.realtime.port }}
               value: {{ .Values.realtime.port | quote }}

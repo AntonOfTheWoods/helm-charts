@@ -117,7 +117,8 @@ spec:
                   key: {{ include "supabase.jwt.serviceSecretKey" . }}
 
             - name: HOSTNAME
-              value: "::"
+              value: "0.0.0.0"
+            #   value: "::"
 
             - name: PG_META_CRYPTO_KEY
               valueFrom:
