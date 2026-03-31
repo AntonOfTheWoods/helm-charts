@@ -237,6 +237,12 @@ spec:
               {{- if .Values.functions.persistence.subPath }}
               subPath: {{ .Values.functions.persistence.subPath }}
               {{- end }}
+            {{- if .Values.functions.imageVolume.enabled }}
+            - name: frontend-static
+              mountPath: {{ .Values.functions.imageVolume.serverRoot | quote }}
+              readOnly: true
+            {{- end }}
+
           {{- if .Values.functions.extraVolumeMounts }}
           {{- include "common.tplvalues.render" (dict "value" .Values.functions.extraVolumeMounts "context" $) | nindent 12 }}
           {{- end }}
@@ -246,6 +252,14 @@ spec:
       volumes:
         - name: empty-dir
           emptyDir: {}
+
+        {{- if .Values.functions.imageVolume.enabled }}
+        - name: frontend-static
+          image:
+            reference: {{ include "supabase.functions.imageVolume" . }}
+            pullPolicy: {{ .Values.functions.imageVolume.image.pullPolicy | quote }}
+        {{- end }}
+
         - name: functions-main
           configMap:
             name: {{ include "supabase.functions.defaultConfigmapName" . }}

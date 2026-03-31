@@ -1,5 +1,5 @@
 {{- if .Values.gateway.enabled }}
-{{- $hosts := concat (.Values.gateway.hosts | default list) (.Values.gateway.extraHosts | default list) -}}
+{{- $hosts := concat (.Values.gateway.hosts | default list) (.Values.gateway.extraHosts | default list) (list (dict "name" (include "supabase.api.baseHost" .) "port" 80)) -}}
 {{- $autoGwName := printf "%s-gateway" (include "common.names.fullname" .) -}}
 {{- $createdGwName := .Values.gateway.name | default $autoGwName -}}
 {{- $parentGwName := ternary $createdGwName (.Values.gateway.existing.name) ( .Values.gateway.create ) -}}

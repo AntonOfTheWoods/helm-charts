@@ -117,6 +117,7 @@ spec:
                   key: {{ include "supabase.jwt.serviceSecretKey" . }}
 
             - name: HOSTNAME
+              # FIXME: this is a hack for when ipv6 is disabled in the container runtime/host
               value: "0.0.0.0"
             #   value: "::"
 
@@ -138,6 +139,10 @@ spec:
             # FIXME: is this necessary?
             - name: CURRENT_CLI_VERSION
               value: "2.53.6"
+
+            # FIXME: nasty hack, make this configurable!!!
+            - name: EDGE_FUNCTIONS_MANAGEMENT_FOLDER
+              value: /functions
 
             - name: AWS_ACCESS_KEY_ID
               valueFrom:
@@ -233,6 +238,12 @@ spec:
             - name: empty-dir
               mountPath: /tmp
               subPath: tmp-dir
+            {{- if .Values.functions.imageVolume.enabled }}
+            - name: functions-static
+              # FIXME: make me configurable!!!
+              mountPath: /functions | quote }}
+              readOnly: true
+            {{- end }}
           {{- if .Values.studio.extraVolumeMounts }}
           {{- include "common.tplvalues.render" (dict "value" .Values.studio.extraVolumeMounts "context" $) | nindent 12 }}
           {{- end }}
@@ -242,6 +253,13 @@ spec:
       volumes:
         - name: empty-dir
           emptyDir: {}
+        {{- if .Values.functions.imageVolume.enabled }}
+        - name: functions-static
+          image:
+            reference: {{ include "supabase.functions.imageVolume" . }}
+            pullPolicy: {{ .Values.functions.imageVolume.image.pullPolicy | quote }}
+        {{- end }}
+
         {{- if .Values.studio.extraVolumes }}
         {{- include "common.tplvalues.render" (dict "value" .Values.studio.extraVolumes "context" $) | nindent 8 }}
         {{- end }}

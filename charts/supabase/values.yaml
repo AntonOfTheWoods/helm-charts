@@ -403,7 +403,7 @@ analytics:
   image:
     registry: docker.io
     repository: supabase/logflare
-    tag: 1.34.14
+    tag: 1.35.1
     pullPolicy: IfNotPresent
     digest: ""
     pullSecrets: []
@@ -618,7 +618,7 @@ auth:
   image:
     registry: docker.io
     repository: supabase/auth
-    tag: v2.187.0
+    tag: v2.188.1
     digest: ""
     ## Specify a imagePullPolicy
     ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
@@ -1027,6 +1027,19 @@ functions:
     digest: ""
     pullPolicy: IfNotPresent
     pullSecrets: []
+
+  # FIXME: do properly!!!
+  imageVolume:
+    enabled: false
+    serverRoot: /public
+    image:
+      registry: docker.io
+      repository: supabase/edge-runtime
+      tag: v1.63.15
+      digest: ""
+      pullPolicy: IfNotPresent
+      pullSecrets: []
+
   containerPorts:
     http: 80
   livenessProbe:
@@ -1277,7 +1290,7 @@ imgproxy:
     dataSource: {}
 
 s3:
-  host: minio
+  host: garage
   port: 80
   useSSL: false
   accessKey:
@@ -1432,7 +1445,7 @@ meta:
   image:
     registry: docker.io
     repository: supabase/postgres-meta
-    tag: v0.96.1
+    tag: v0.96.2
     digest: ""
     ## Specify a imagePullPolicy
     ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
@@ -1887,7 +1900,7 @@ realtime:
   image:
     registry: docker.io
     repository: supabase/realtime
-    tag: v2.78.15
+    tag: v2.86.2
     digest: ""
     ## Specify a imagePullPolicy
     ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
@@ -2742,7 +2755,7 @@ storage:
   image:
     registry: docker.io
     repository: supabase/storage-api
-    tag: v1.44.6
+    tag: v1.48.5
     digest: ""
     ## Specify a imagePullPolicy
     ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
@@ -3212,7 +3225,7 @@ studio:
   image:
     registry: docker.io
     repository: supabase/studio
-    tag: 2026.03.16-sha-5528817
+    tag: 2026.03.30-sha-12a43e5
     digest: ""
     ## Specify a imagePullPolicy
     ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
