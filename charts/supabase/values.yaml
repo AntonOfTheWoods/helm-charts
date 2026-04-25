@@ -509,6 +509,23 @@ analytics:
     extraPorts: []
     sessionAffinity: None
     sessionAffinityConfig: {}
+  routing:
+    # Config-driven split routing for selected /functions/v1/* paths.
+    # Exact matches route to split backends; the existing /functions/v1/ prefix rule remains fallback.
+    splits: []
+    # Example:
+    # splits:
+    #   - name: spin-hello
+    #     paths:
+    #       - type: Exact
+    #         value: /functions/v1/hello
+    #     # Optional: rewrite request path before sending to backend service.
+    #     # rewritePath: /hello
+    #     backend:
+    #       serviceName: transcrobes-spin-hello-spinapp
+    #       port: 80
+    #       # Optional: route to service in a different namespace.
+    #       # namespace: default
   networkPolicy:
     enabled: true
     allowExternal: true

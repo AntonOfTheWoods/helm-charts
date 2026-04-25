@@ -16,8 +16,48 @@ spec:
     {{- include "supabase.gateway.validatedHosts" . | nindent 4 }}
     - {{ include "supabase.api.baseHost" . | quote }}
   rules:
+    {{- $functionRouteMethods := list "GET" "POST" "PUT" "PATCH" "DELETE" }}
+    {{- $functionSplits := list }}
+    {{- with .Values.functions.routing }}
+    {{- $functionSplits = (.splits | default (list)) }}
+    {{- end }}
+    # functions splits - config-driven routes for selected function paths
+    {{- range $split := $functionSplits }}
+    {{- $paths := ($split.paths | default (list)) }}
+    {{- if and (gt (len $paths) 0) $split.backend.serviceName $split.backend.port }}
+    {{- range $m := $functionRouteMethods }}
+    - matches:
+        {{- range $p := $paths }}
+        - path: { type: {{ ($p.type | default "Exact") }}, value: {{ $p.value }} }
+          method: {{ $m }}
+        {{- end }}
+      filters:
+        {{- if $split.rewritePath }}
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: {{ $split.rewritePath }}
+        {{- end }}
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            set:
+              - name: Access-Control-Allow-Origin
+                value: "*"
+              - name: Vary
+                value: "Origin"
+      backendRefs:
+        - name: {{ $split.backend.serviceName }}
+          {{- if $split.backend.namespace }}
+          namespace: {{ $split.backend.namespace }}
+          {{- end }}
+          port: {{ $split.backend.port }}
+    {{- end }}
+    {{- end }}
+    {{- end }}
+
     # functions (strip /functions/v1/) - one rule per method (exclude OPTIONS)
-    {{- range $m := list "GET" "POST" "PUT" "PATCH" "DELETE" }}
+    {{- range $m := $functionRouteMethods }}
     - matches:
         - path: { type: PathPrefix, value: /functions/v1/ }
           method: {{ $m }}
