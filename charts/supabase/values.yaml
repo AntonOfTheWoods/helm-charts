@@ -1396,11 +1396,11 @@ gateway:
 istio:
   enabled: true
   # # Ingress gateway Service reference (namespace + service name) used by the Gateway and Certificate resources
-  # ingress:
-  #   # @param istio.ingress.serviceName Name of the Istio ingressgateway Service
-  #   serviceName: istio-ingress
-  #   # @param istio.ingress.namespace Namespace where the ingressgateway Service (and its TLS Secret) live
-  #   namespace: istio-ingress
+  ingress:
+    # @param istio.ingress.serviceName Name of the Istio ingressgateway Service
+    serviceName: istio-ingress
+    # @param istio.ingress.namespace Namespace where the ingressgateway Service (and its TLS Secret) live
+    namespace: istio-system
 
   # gatewaySelector:
   #   istio: ingressgateway

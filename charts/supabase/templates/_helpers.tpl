@@ -9,8 +9,6 @@ Return the proper Supabase Studio Public URL
 {{- define "supabase.studio.publicURL" -}}
 {{- if .Values.studio.publicURL -}}
 {{- print .Values.studio.publicURL -}}
-{{- else if .Values.studio.ingress.enabled -}}
-{{- printf "http://%s" .Values.studio.ingress.hostname -}}
 {{- else if (and (eq .Values.studio.service.type "LoadBalancer") .Values.studio.service.loadBalancerIP) -}}
 {{- printf "http://%s:%d" .Values.studio.service.loadBalancerIP (int .Values.studio.service.ports.http) -}}
 {{- end -}}
@@ -341,8 +339,6 @@ Extra configuration ConfigMap name
 {{- define "supabase.studio.host" -}}
 {{- if .Values.studio.host -}}
     {{- print .Values.studio.host -}}
-{{- else if .Values.studio.ingress.enabled -}}
-    {{- print .Values.studio.ingress.hostname -}}
 {{- else if (eq .Values.studio.service.type "ClusterIP") -}}
     {{- print "http://127.0.0.1" -}}
 {{- else if (eq .Values.studio.service.type "LoadBalancer") -}}
