@@ -1,0 +1,150 @@
+{{- if .Values.gateway.enabled }}
+{{- $autoGwName := printf "%s-gateway" (include "common.names.fullname" .) -}}
+{{- $createdGwName := .Values.gateway.name | default $autoGwName -}}
+{{- $parentGwName := ternary $createdGwName (.Values.gateway.existing.name) ( .Values.gateway.create ) -}}
+{{- $parentGwNamespace := (ternary (.Values.gateway.namespace | default (include "supabase.gateway.ingress.namespace" .)) (.Values.gateway.existing.namespace) (.Values.gateway.create)) -}}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ include "common.names.fullname" . }}-api-extra
+  namespace: {{ include "common.names.namespace" . }}
+  labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ ) | nindent 4 }}
+    app.kubernetes.io/part-of: supabase
+    app.kubernetes.io/component: ingress
+spec:
+  parentRefs:
+    - kind: ListenerSet
+      name: {{ .Values.gateway.listenerset.name | default (printf "%s-gateway" (include "common.names.fullname" .)) }}
+
+  # parentRefs:
+  #   - group: gateway.networking.k8s.io
+  #     kind: Gateway
+  #     name: {{ $parentGwName }}
+  #     namespace: {{ $parentGwNamespace }}
+  hostnames:
+    {{- include "supabase.gateway.validatedHosts" . | nindent 4 }}
+    - {{ include "supabase.api.baseHost" . | quote }}
+  rules:
+    # auth fixed endpoints (/verify)
+    {{- range $m := list "GET" "POST" }}
+    - matches:
+        - path: { type: PathPrefix, value: /auth/v1/verify }
+          method: {{ $m }}
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: /verify
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            set:
+              - name: Access-Control-Allow-Origin
+                value: "*"
+              - name: Vary
+                value: "Origin"
+      backendRefs:
+        - name: {{ include "supabase.auth.fullname" $ }}
+          port: {{ $.Values.auth.service.ports.http }}
+    {{- end }}
+
+    # auth fixed endpoints (/callback)
+    {{- range $m := list "GET" "POST" }}
+    - matches:
+        - path: { type: PathPrefix, value: /auth/v1/callback }
+          method: {{ $m }}
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: /callback
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            set:
+              - name: Access-Control-Allow-Origin
+                value: "*"
+              - name: Vary
+                value: "Origin"
+      backendRefs:
+        - name: {{ include "supabase.auth.fullname" $ }}
+          port: {{ $.Values.auth.service.ports.http }}
+    {{- end }}
+
+    # auth fixed endpoints (/authorize)
+    {{- range $m := list "GET" "POST" }}
+    - matches:
+        - path: { type: PathPrefix, value: /auth/v1/authorize }
+          method: {{ $m }}
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: /authorize
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            set:
+              - name: Access-Control-Allow-Origin
+                value: "*"
+              - name: Vary
+                value: "Origin"
+      backendRefs:
+        - name: {{ include "supabase.auth.fullname" $ }}
+          port: {{ $.Values.auth.service.ports.http }}
+    {{- end }}
+
+    # rest (strip /rest/v1/, remove headers)
+    {{- range $m := list "GET" "POST" "PUT" "PATCH" "DELETE" }}
+    - matches:
+        - path: { type: PathPrefix, value: /rest/v1/ }
+          method: {{ $m }}
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            remove: ["apikey", "authorization"]
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            set:
+              - name: Access-Control-Allow-Origin
+                value: "*"
+              - name: Vary
+                value: "Origin"
+      backendRefs:
+        - name: {{ include "supabase.rest.fullname" $ }}
+          port: {{ $.Values.rest.service.ports.http }}
+    {{- end }}
+
+    # storage (strip /storage/v1/, add Forwarded header)
+    {{- range $m := list "GET" "POST" "PUT" "PATCH" "DELETE" }}
+    - matches:
+        - path: { type: PathPrefix, value: /storage/v1/ }
+          method: {{ $m }}
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            add:
+              - name: Forwarded
+                value: "proto=https"
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            set:
+              - name: Access-Control-Allow-Origin
+                value: "*"
+              - name: Vary
+                value: "Origin"
+      backendRefs:
+        - name: {{ include "supabase.storage.fullname" $ }}
+          port: {{ $.Values.storage.service.ports.http }}
+    {{- end }}
+{{- end }}

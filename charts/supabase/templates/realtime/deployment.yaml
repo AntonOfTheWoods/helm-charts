@@ -36,7 +36,11 @@ spec:
         {{- if .Values.realtime.extraConfig }}
         checksum/extra-configmap: {{ include (print $.Template.BasePath "/realtime/extra-configmap.yaml") . | sha256sum }}
         {{- end }}
-        checksum/jwt-secret: {{ include (print $.Template.BasePath "/jwt-secret.yaml") . | sha256sum }}
+        {{- $ns := include "common.names.namespace" . -}}
+        {{- $jwtSec := lookup "v1" "Secret" $ns (include "supabase.jwt.secretName" .) -}}
+        {{- if $jwtSec }}
+        checksum/jwt-secret: {{ toYaml $jwtSec.data | sha256sum }}
+        {{- end }}
         checksum/secret: {{ include (print $.Template.BasePath "/realtime/secret.yaml") . | sha256sum }}
       labels: {{- include "common.labels.standard" ( dict "customLabels" $podLabels "context" $ ) | nindent 8 }}
         app.kubernetes.io/part-of: supabase
@@ -79,43 +83,8 @@ spec:
       {{- end }}
       initContainers:
         {{- if not .Values.diagnosticMode.enabled }}
-        {{- include "supabase.waitForDBInitContainer" . | nindent 8 }}
+        {{- include "supabase.database.checkdbready" . | nindent 8 }}
         {{- end }}
-        - name: create-tzdata-priv
-          image: {{ template "supabase.realtime.image" . }}
-          imagePullPolicy: {{ .Values.realtime.image.pullPolicy }}
-          {{- if .Values.realtime.containerSecurityContext.enabled }}
-          securityContext: {{- include "common.compatibility.renderSecurityContext" (dict "secContext" .Values.realtime.containerSecurityContext "context" $) | nindent 12 }}
-          {{- end }}
-          command:
-            - /bin/bash
-          args:
-            - -ec
-            - |
-              cp -r /opt/bitnami/supabase-realtime/lib/tzdata-*/priv/* /priv
-          {{- if .Values.realtime.resources }}
-          resources: {{- toYaml .Values.realtime.resources | nindent 12 }}
-          {{- else if ne .Values.realtime.resourcesPreset "none" }}
-          resources: {{- include "common.resources.preset" (dict "type" .Values.realtime.resourcesPreset) | nindent 12 }}
-          {{- end }}
-          volumeMounts:
-            - name: empty-dir
-              mountPath: /tmp
-              subPath: tmp-dir
-            - name: empty-dir
-              mountPath: /priv
-              subPath: app-tzdata-dir
-
-        - name: post-install-job-schema
-          image: postgres:16
-          command: ["/bin/sh"]
-          args:
-            - -c
-            - >-
-              echo "CREATE SCHEMA IF NOT EXISTS _realtime;" | psql &&
-              echo "ALTER SCHEMA _realtime OWNER TO supabase_admin;" | psql;
-          env:
-            {{ include "supabase.database.pgenvvars" . | indent 10 }}
         {{- if .Values.realtime.initContainers }}
           {{- include "common.tplvalues.render" (dict "value" .Values.realtime.initContainers "context" $) | nindent 8 }}
         {{- end }}
@@ -130,23 +99,40 @@ spec:
           command: {{- include "common.tplvalues.render" (dict "value" .Values.diagnosticMode.command "context" $) | nindent 12 }}
           {{- else if .Values.realtime.command }}
           command: {{- include "common.tplvalues.render" (dict "value" .Values.realtime.command "context" $) | nindent 12 }}
-          {{- else }}
-          command:
-            - /bin/bash
           {{- end }}
           {{- if .Values.diagnosticMode.enabled }}
           args: {{- include "common.tplvalues.render" (dict "value" .Values.diagnosticMode.args "context" $) | nindent 12 }}
           {{- else if .Values.realtime.args }}
           args: {{- include "common.tplvalues.render" (dict "value" .Values.realtime.args "context" $) | nindent 12 }}
-          {{- else }}
-          args:
-            - -ec
-            - |
-              realtime eval Realtime.Release.migrate && realtime start
           {{- end }}
           env:
             {{ include "supabase.database.envvars" . | indent 12 }}
 
+            # This can't go in the supabase.database.envvars template because
+            # this deployment RIDICULOUSLY needs different values for DB_SSL
+            - name: DB_SSL
+              value: {{ if eq .Values.dbSSL "disable" }}"false"{{ else }}"true"{{ end }}
+
+            # FIXME: add the other options on https://github.com/supabase/realtime
+            - name: DASHBOARD_AUTH
+              value: "true"
+
+            - name: DASHBOARD_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.realtime.dashboard.existingSecret.name | quote }}
+                  key: {{ .Values.realtime.dashboard.existingSecret.usernameKey | quote }}
+            - name: DASHBOARD_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.realtime.dashboard.existingSecret.name | quote }}
+                  key: {{ .Values.realtime.dashboard.existingSecret.passwordKey | quote }}
+
+            - name: METRICS_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.jwt.secretName" . | quote }}
+                  key: {{ include "supabase.jwt.secretKey" . | quote }}
             - name: API_JWT_SECRET
               valueFrom:
                 secretKeyRef:
@@ -162,6 +148,61 @@ spec:
                 secretKeyRef:
                   name: {{ include "supabase.realtime.secretName" . | quote }}
                   key: {{ include "supabase.realtime.dbEncKeyName" . | quote }}
+
+            - name: RUN_JANITOR
+              value: "true"
+            - name: RLIMIT_NOFILE
+              value: "10000"
+
+            - name: DB_IP_VERSION
+              value: "ipv4"
+            - name: REPLICATION_MODE
+              value: "ipv4"
+            - name: REALTIME_IP_VERSION
+              value: "ipv4"
+            - name: APP_NAME
+              value: realtime
+            - name: SEED_SELF_HOST
+              value: "true"
+
+            - name: REALTIME_HOST
+              value: "0.0.0.0"
+            - name: HOST
+              value: "0.0.0.0"
+            - name: HOSTNAME
+              value: "0.0.0.0"
+            - name: TRANSPORT_OPTIONS_INET6
+              value: "false"
+
+            - name: PORT
+            {{- if .Values.realtime.port }}
+              value: {{ .Values.realtime.port | quote }}
+            {{- else }}
+              value: {{ .Values.realtime.containerPorts.http | quote }}
+            {{- end }}
+            - name: FLY_ALLOC_ID
+              value: {{ .Values.realtime.flyAllocID | quote }}
+            - name: FLY_APP_NAME
+              value: {{ .Values.realtime.flyAppName | quote }}
+            - name: ERL_AFLAGS
+              value: {{ .Values.realtime.erlAflags | quote }}
+            - name: DB_AFTER_CONNECT_QUERY
+              value: {{ .Values.realtime.dbAfterConnectQuery | quote }}
+            - name: DNS_NODES
+              value: {{ .Values.realtime.dnsNodes | quote }}
+            - name: ENABLE_TAILSCALE
+              value: {{ .Values.realtime.enableTailscale | quote }}
+            - name: MIX_ENV
+              value: {{ .Values.realtime.mixEnv | quote }}
+            - name: SLOT_NAME_SUFFIX
+              value: {{ .Values.realtime.slotNameSuffix | quote }}
+
+            ## FIXME: also had before, maybe put back!
+            ## REPLICATION_MODE: "RLS"
+            ## REPLICATION_POLL_INTERVAL: "100"
+            ## SECURE_CHANNELS: "true"
+            ## SLOT_NAME: "supabase_realtime_rls"
+            ## TEMPORARY_SLOT: "true"
 
             {{- if .Values.realtime.extraEnvVars }}
             {{- include "common.tplvalues.render" (dict "value" .Values.realtime.extraEnvVars "context" $) | nindent 12 }}
@@ -183,8 +224,6 @@ spec:
             {{- end }}
           {{- if .Values.realtime.resources }}
           resources: {{- toYaml .Values.realtime.resources | nindent 12 }}
-          {{- else if ne .Values.realtime.resourcesPreset "none" }}
-          resources: {{- include "common.resources.preset" (dict "type" .Values.realtime.resourcesPreset) | nindent 12 }}
           {{- end }}
           ports:
             - name: http

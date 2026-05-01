@@ -1,11 +1,8 @@
-# Copyright Broadcom, Inc. All Rights Reserved.
-# SPDX-License-Identifier: APACHE-2.0
-
-## @section Global parameters
-## Global Docker image parameters
-## Please, note that this will override the image parameters, including dependencies, configured to use the global value
-## Current available global Docker image parameters: imageRegistry, imagePullSecrets and storageClass
-##
+project:
+  name: "{{ .Release.Name }}"
+  local:
+    enabled: false
+    enableNodePorts: false
 
 ## @param global.imageRegistry Global Docker image registry
 ## @param global.imagePullSecrets Global Docker registry secret names as an array
@@ -34,6 +31,10 @@ global:
     ## @param global.jwt.existingSecretServiceKey The key in the existing secret containing the JWT service key
     ##
     existingSecretServiceKey: "service-key"
+    ## @param global.jwt.existingSecretExpiry The expiry in the existing secret containing the JWT service key
+    ##
+    existingSecretExpiry: "expiry"
+
   ## Compatibility adaptations for Kubernetes platforms
   ##
   compatibility:
@@ -96,12 +97,16 @@ jwt:
   ## @param jwt.serviceKey JWT string for service users
   ##
   serviceKey: ""
+  ## @param jwt.expiry for JWT service users
+  ##
+  expiry: ""
+
   autoGenerate:
     ## @param jwt.autoGenerate.forceRun Force the run of the JWT generation job
     ##
     forceRun: false
     ## Bitnami JWT CLI image
-    ## ref: https://hub.docker.com/r/bitnami/jwt-cli/tags/
+    ## ref: https://hub.docker.com/r/bitnamilegacy/jwt-cli/tags/
     ## @param jwt.autoGenerate.image.registry [default: REGISTRY_NAME] JWT CLI image registry
     ## @param jwt.autoGenerate.image.repository [default: REPOSITORY_NAME/jwt-cli] JWT CLI image repository
     ## @skip jwt.autoGenerate.image.tag JWT CLI image tag (immutable tags are recommended)
@@ -111,8 +116,9 @@ jwt:
     ##
     image:
       registry: docker.io
-      repository: bitnami/jwt-cli
-      tag: 6.1.0-debian-12-r0
+      # FIXME: remove!
+      repository: bitnamilegacy/jwt-cli
+      tag: 6.2.0-debian-12-r16
       digest: ""
       ## Specify a imagePullPolicy
       ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
@@ -129,7 +135,7 @@ jwt:
       pullSecrets: []
     kubectlImage:
       ## Bitnami Kubectl image
-      ## ref: https://hub.docker.com/r/bitnami/kubectl/tags/
+      ## ref: https://hub.docker.com/r/bitnamilegacy/kubectl/tags/
       ## @param jwt.autoGenerate.kubectlImage.registry [default: REGISTRY_NAME] Kubectl image registry
       ## @param jwt.autoGenerate.kubectlImage.repository [default: REPOSITORY_NAME/kubectl] Kubectl image repository
       ## @skip jwt.autoGenerate.kubectlImage.tag Kubectl image tag (immutable tags are recommended)
@@ -138,8 +144,9 @@ jwt:
       ## @param jwt.autoGenerate.kubectlImage.pullSecrets Kubectl image pull secrets
       ##
       registry: docker.io
-      repository: bitnami/kubectl
-      tag: 1.30.1-debian-12-r1
+      # FIXME: remove!
+      repository: bitnamilegacy/kubectl
+      tag: 1.33.4-debian-12-r0
       digest: ""
       ## Specify a imagePullPolicy
       ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
@@ -340,12 +347,12 @@ jwt:
     ## @param jwt.autoGenerate.extraVolumeMounts Array of extra volume mounts to be added to the jwt Container (evaluated as template). Normally used with `extraVolumes`.
     ##
     extraVolumeMounts: []
+    ## FIXME: replace or remove
     ## Container resource requests and limits
     ## ref: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
     ## @param jwt.autoGenerate.resourcesPreset Set container resources according to one common preset (allowed values: none, nano, micro, small, medium, large, xlarge, 2xlarge). This is ignored if jwt.autoGenerate.resources is set (jwt.autoGenerate.resources is recommended for production).
     ## More information: https://github.com/bitnami/charts/blob/main/bitnami/common/templates/_resources.tpl#L15
     ##
-    resourcesPreset: "nano"
     ## @param jwt.autoGenerate.resources Set container requests and limits for different resources like CPU or memory (essential for production workloads)
     ## Example:
     ## resources:
@@ -369,7 +376,6 @@ jwt:
     annotations:
       helm.sh/hook: post-install
       helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
-      # This should be executed after the minio provisioning job
       helm.sh/hook-weight: "10"
     ## @param jwt.autoGenerate.podLabels Additional pod labels
     ## Ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
@@ -379,7 +385,6 @@ jwt:
     ## ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
     ##
     podAnnotations: {}
-
 
 analytics:
   enabled: true
@@ -398,7 +403,7 @@ analytics:
   image:
     registry: docker.io
     repository: supabase/logflare
-    tag: "1.4.0"  # WARNING - later versions are NOT compatible with the current supabase studio version
+    tag: 1.35.1
     pullPolicy: IfNotPresent
     digest: ""
     pullSecrets: []
@@ -441,16 +446,15 @@ analytics:
   customLivenessProbe: {}
   customReadinessProbe: {}
   customStartupProbe: {}
-  resourcesPreset: "small"
   resources: {}
   podSecurityContext:
-    enabled: false  # FIXME:
+    enabled: false # FIXME:
     fsGroupChangePolicy: Always
     sysctls: []
     supplementalGroups: []
     fsGroup: 1001
   containerSecurityContext:
-    enabled: false  # FIXME:
+    enabled: false # FIXME:
     seLinuxOptions: {}
     runAsUser: 1001
     runAsGroup: 1001
@@ -505,6 +509,23 @@ analytics:
     extraPorts: []
     sessionAffinity: None
     sessionAffinityConfig: {}
+  routing:
+    # Config-driven split routing for selected /functions/v1/* paths.
+    # Exact matches route to split backends; the existing /functions/v1/ prefix rule remains fallback.
+    splits: []
+    # Example:
+    # splits:
+    #   - name: spin-hello
+    #     paths:
+    #       - type: Exact
+    #         value: /functions/v1/hello
+    #     # Optional: rewrite request path before sending to backend service.
+    #     # rewritePath: /hello
+    #     backend:
+    #       serviceName: transcrobes-spin-hello-spinapp
+    #       port: 80
+    #       # Optional: route to service in a different namespace.
+    #       # namespace: default
   networkPolicy:
     enabled: true
     allowExternal: true
@@ -514,364 +535,30 @@ analytics:
     ingressNSMatchLabels: {}
     ingressNSPodMatchLabels: {}
 
+## External analyticsdb Postgres configuration
+## @param analyticsdb.host Database host
+## @param analyticsdb.port Database port number
+## @param analyticsdb.database PostgreSQL database name
+##
 analyticsdb:
   enabled: true
-  auth:
-    existingSecret: externaldb-analyticsdb
-  postgresqlSharedPreloadLibraries: "pg_stat_statements, pg_stat_monitor, pgaudit, plpgsql, plpgsql_check, pg_cron, pg_net, pgsodium, timescaledb, auto_explain"
-  image:
-    repository: bitnami/supabase-postgres
-    tag: "15.1.1-debian-12-r65"
-  primary:
-    extendedConfiguration: |-
-      wal_level = logical
-      huge_pages = off
-
-  # these are not from the bitnami postgresql chart, but additions copied from the supabase chart for the pg dep
-  service:
-    ports:
-      postgresql: 5432
-
-vector:
-  image:
-    tag: 0.38.0-debian
-  # command: [ "/bin/bash", "-c", "--" ]
-  # args: [ "while true; do sleep 10; done;" ]
-
-  dataDir: "/vector-data-dir"
-  role: "Agent"
-  enabled: true
-  existingConfigMaps:
-    - 'supabase-vectoragent-config'
-  containerPorts:
-    - name: prom-exporter
-      containerPort: 9090
-      protocol: TCP
-  service:
-    ports:
-      - protocol: TCP
-        port: 80
-        targetPort: 9090
-  env:
-    - name: LOGFLARE_API_KEY
-      valueFrom:
-        secretKeyRef:
-          name: supabase-logflare
-          key: api-key
-
-
-## External PostgreSQL configuration
-## All of these values are only used when analyticsdb.enabled is set to false
-## @param externalDatabaseAnalyticsdb.host Database host
-## @param externalDatabaseAnalyticsdb.port Database port number
-## @param externalDatabaseAnalyticsdb.user Non-root username for PostgreSQL
-## @param externalDatabaseAnalyticsdb.password Password for the non-root username for PostgreSQL
-## @param externalDatabaseAnalyticsdb.database PostgreSQL database name
-## @param externalDatabaseAnalyticsdb.existingSecret Name of an existing secret resource containing the database credentials
-## @param externalDatabaseAnalyticsdb.existingSecretPasswordKey Name of an existing secret key containing the database credentials
-##
-externalDatabaseAnalyticsdb:
-  host: "externaldb"
+  host: "analyticsdb"
   port: 1111
-  user: supabase_admin_analytics
   database: postgresisgreat
-  password: "badpassword"
-  existingSecret: ""
-  existingSecretPasswordKey: ""
+  ## @param analyticsdb.auth.user Non-root username for PostgreSQL
+  ## @param analyticsdb.auth.existingSecret Name of an existing secret resource containing the database credentials
+  ## @param analyticsdb.auth.existingSecretPasswordKey Name of an existing secret key containing the database credentials
+  auth:
+    user: supabase_admin_analytics
+    existingSecret: externaldb-analyticsdb
+    existingSecretPasswordKey: ""
 
-functions:
-  enabled: true
-  diagnosticMode:
-    enabled: false
-    command:
-      - sleep
-    args:
-      - infinity
-  userFunctionsPath: /bitnami/supabase-functions
-  entrypointPath: /home/deno/functions/main
-
-  workerMemoryLimitMb: 150
-  workerTimeoutMs: 60000
-  workerCPUTimeSoftLimitMs: 1000
-  workerCPUTimeHardLimitMs: 2000
-  workerNoModuleCache: false
-  workerForceCreate: false
-  workerNetAccessDisabled: false
-  # workerImportMapPath:  # no default value
-
-  replicaCount: 1
-  extraConfig: {}
-  existingConfigmap: ""
-  extraConfigExistingConfigmap: ""
-  image:
-    registry: docker.io
-    repository: supabase/edge-runtime
-    tag: v1.46.0
-    digest: ""
-    pullPolicy: IfNotPresent
-    pullSecrets: []
-  containerPorts:
-    http: 80
-  livenessProbe:
-    enabled: true
-    initialDelaySeconds: 30
-    periodSeconds: 10
-    timeoutSeconds: 5
-    failureThreshold: 6
-    successThreshold: 1
-  readinessProbe:
-    enabled: true
-    initialDelaySeconds: 5
-    periodSeconds: 10
-    timeoutSeconds: 5
-    failureThreshold: 6
-    successThreshold: 1
-  startupProbe:
-    enabled: false
-    initialDelaySeconds: 5
-    periodSeconds: 10
-    timeoutSeconds: 5
-    failureThreshold: 6
-    successThreshold: 1
-  customLivenessProbe: {}
-  customReadinessProbe: {}
-  customStartupProbe: {}
-  resourcesPreset: "micro"
-  resources: {}
-  podSecurityContext:
-    enabled: false  # FIXME:
-    fsGroupChangePolicy: Always
-    sysctls: []
-    supplementalGroups: []
-    fsGroup: 1001
-  containerSecurityContext:
-    enabled: false  # FIXME:
-    seLinuxOptions: {}
-    runAsUser: 1001
-    runAsGroup: 1001
-    runAsNonRoot: true
-    privileged: false
-    readOnlyRootFilesystem: true
-    allowPrivilegeEscalation: false
-    capabilities:
-      drop: ["ALL"]
-    seccompProfile:
-      type: "RuntimeDefault"
-  command: []
-  args: []
-  automountServiceAccountToken: false
-  hostAliases: []
-  podLabels: {}
-  podAnnotations: {}
-  podAffinityPreset: ""
-  podAntiAffinityPreset: soft
-  nodeAffinityPreset:
-    type: ""
-    key: ""
-    values: []
-  affinity: {}
-  nodeSelector: {}
-  tolerations: []
-  updateStrategy:
-    type: RollingUpdate
-  priorityClassName: ""
-  topologySpreadConstraints: []
-  schedulerName: ""
-  terminationGracePeriodSeconds: ""
-  lifecycleHooks: {}
-  extraEnvVars: []
-  extraEnvVarsCM: ""
-  extraEnvVarsSecret: ""
-  extraVolumes: []
-  extraVolumeMounts: []
-  sidecars: []
-  initContainers: []
-  service:
-    type: ClusterIP
-    ports:
-      http: 80
-    nodePorts:
-      http: ""
-    clusterIP: ""
-    loadBalancerIP: ""
-    loadBalancerSourceRanges: []
-    externalTrafficPolicy: Cluster
-    annotations: {}
-    extraPorts: []
-    sessionAffinity: None
-    sessionAffinityConfig: {}
-  networkPolicy:
-    enabled: true
-    allowExternal: true
-    allowExternalEgress: true
-    extraIngress: []
-    extraEgress: []
-    ingressNSMatchLabels: {}
-    ingressNSPodMatchLabels: {}
-  persistence:
-    enabled: true
-    mountPath: /bitnami/supabase-functions
-    subPath: ""
-    storageClass: ""
-    annotations: {}
-    accessModes:
-      - ReadWriteOnce
-    size: 8Gi
-    existingClaim: ""
-    selector: {}
-    dataSource: {}
-
-imgproxy:
-  enabled: true
-  diagnosticMode:
-    enabled: false
-    command:
-      - sleep
-    args:
-      - infinity
-  replicaCount: 1
-  extraConfig: {}
-  existingConfigmap: ""
-  extraConfigExistingConfigmap: ""
-  image:
-    registry: docker.io
-    repository: darthsim/imgproxy
-    tag: v3.24.0
-    digest: ""
-    pullPolicy: IfNotPresent
-    pullSecrets: []
-  containerPorts:
-    http: 5001
-  application:
-    # localFilesystemRoot: /
-    useEtag: true
-    enableWebpDetection: true
-
-  livenessProbe:
-    enabled: true
-    initialDelaySeconds: 30
-    periodSeconds: 10
-    timeoutSeconds: 5
-    failureThreshold: 6
-    successThreshold: 1
-  readinessProbe:
-    enabled: true
-    initialDelaySeconds: 5
-    periodSeconds: 10
-    timeoutSeconds: 5
-    failureThreshold: 6
-    successThreshold: 1
-  startupProbe:
-    enabled: false
-    initialDelaySeconds: 5
-    periodSeconds: 10
-    timeoutSeconds: 5
-    failureThreshold: 6
-    successThreshold: 1
-  customLivenessProbe: {}
-  customReadinessProbe: {}
-  customStartupProbe: {}
-  resourcesPreset: "medium"
-  resources: {}
-  podSecurityContext:
-    enabled: true
-    fsGroupChangePolicy: Always
-    sysctls: []
-    supplementalGroups: []
-    fsGroup: 1001
-  containerSecurityContext:
-    enabled: true
-    seLinuxOptions: {}
-    runAsUser: 1001
-    runAsGroup: 1001
-    runAsNonRoot: true
-    privileged: false
-    readOnlyRootFilesystem: true
-    allowPrivilegeEscalation: false
-    capabilities:
-      drop: ["ALL"]
-    seccompProfile:
-      type: "RuntimeDefault"
-  command: []
-  args: []
-  automountServiceAccountToken: false
-  hostAliases: []
-  podLabels: {}
-  podAnnotations: {}
-  podAffinityPreset: ""
-  podAntiAffinityPreset: soft
-  nodeAffinityPreset:
-    type: ""
-    key: ""
-    values: []
-  affinity: {}
-  nodeSelector: {}
-  tolerations: []
-  updateStrategy:
-    type: RollingUpdate
-  priorityClassName: ""
-  topologySpreadConstraints: []
-  schedulerName: ""
-  terminationGracePeriodSeconds: ""
-  lifecycleHooks: {}
-  extraEnvVars: []
-  extraEnvVarsCM: ""
-  extraEnvVarsSecret: ""
-  extraVolumes: []
-  extraVolumeMounts: []
-  sidecars: []
-  initContainers: []
-  service:
-    type: ClusterIP
-    ports:
-      http: 5001
-    nodePorts:
-      http: ""
-    clusterIP: ""
-    loadBalancerIP: ""
-    loadBalancerSourceRanges: []
-    externalTrafficPolicy: Cluster
-    annotations: {}
-    extraPorts: []
-    sessionAffinity: None
-    sessionAffinityConfig: {}
-  networkPolicy:
-    enabled: true
-    allowExternal: true
-    allowExternalEgress: true
-    extraIngress: []
-    extraEgress: []
-    ingressNSMatchLabels: {}
-    ingressNSPodMatchLabels: {}
-  persistence:
-    enabled: true
-    mountPath: /bitnami/supabase-imgproxy
-    subPath: ""
-    storageClass: ""
-    annotations: {}
-    accessModes:
-      - ReadWriteOnce
-    size: 8Gi
-    existingClaim: ""
-    selector: {}
-    dataSource: {}
-
-minio:
-  enabled: false
-  defaultBuckets: stub
-
-
-## @param publicURL Supabase API public URL
-##
-publicURL: ""
-## @param dbSSL Supabase API database connection mode for SSL. Applied to all components. Allowed values: verify-ca, verify-full, disable, allow, prefer, require
-## https://www.postgresql.org/docs/current/libpq-ssl.html
-##
-dbSSL: "disable"
 ## @section Supabase Auth Parameters
 ##
 ##
 auth:
+  logLevel: "info"
+
   ## @param auth.enabled Enable Supabase auth
   ##
   enabled: true
@@ -880,31 +567,55 @@ auth:
   replicaCount: 1
   ## @param auth.defaultConfig [string] Supabase auth default configuration
   ##
-  defaultConfig: |
-    GOTRUE_API_HOST: "0.0.0.0"
-    GOTRUE_API_PORT: {{ .Values.auth.containerPorts.http | quote }}
-    API_EXTERNAL_URL: "http:/{{ include "supabase.auth.fullname" . }}:{{ .Values.auth.service.ports.http }}"
-    GOTRUE_SITE_URL: {{ include "supabase.studio.publicURL" . | quote }}
-    GOTRUE_URI_ALLOW_LIST: "*"
-    GOTRUE_DISABLE_SIGNUP: "false"
-    GOTRUE_DB_DRIVER: "postgres"
-    GOTRUE_DB_MIGRATIONS_PATH: "/opt/bitnami/gotrue/"
-    GOTRUE_JWT_DEFAULT_GROUP_NAME: "authenticated"
-    GOTRUE_JWT_ADMIN_ROLES: "service_role"
-    GOTRUE_JWT_AUD: "authenticated"
-    GOTRUE_JWT_EXP: "3600"
-    GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
-    GOTRUE_MAILER_AUTOCONFIRM: "true"
-    GOTRUE_SMTP_ADMIN_EMAIL: "your-mail@example.com"
-    GOTRUE_SMTP_HOST: "smtp.example.com"
-    GOTRUE_SMTP_PORT: "587"
-    GOTRUE_SMTP_SENDER_NAME: "your-mail@example.com"
-    GOTRUE_EXTERNAL_PHONE_ENABLED: "false"
-    GOTRUE_SMS_AUTOCONFIRM: "false"
-    GOTRUE_MAILER_URLPATHS_INVITE: "{{ include "supabase.studio.publicURL" . }}/auth/v1/verify"
-    GOTRUE_MAILER_URLPATHS_CONFIRMATION: "{{ include "supabase.studio.publicURL" . }}/auth/v1/verify"
-    GOTRUE_MAILER_URLPATHS_RECOVERY: "{{ include "supabase.studio.publicURL" . }}/auth/v1/verify"
-    GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: "{{ include "supabase.studio.publicURL" . }}/auth/v1/verify"
+  apiHost: "0.0.0.0"
+  apiPort: "" # will default to containerPorts.http
+  apiExternalURL: "" # will default to publicURL
+  uriAllowList: "*"
+  dbDriver: "postgres"
+  dbMigrationsPath: "/usr/local/etc/auth/migrations/"
+  jwtDefaultGroupName: "authenticated"
+  jwtAdminRoles: "service_role"
+  jwtAud: "authenticated"
+  jwtExp: "86400"
+  disableSignup: true
+  externalEmailEnabled: false
+  mailerAutoconfirm: false
+  smtpAdminEmail: "your-mail@example.com"
+  smtpHost: "smtp.example.com"
+  smtpPort: 587
+  smtpSenderName: "your-mail@example.com"
+  smtpUser:
+    secretname: supabase-smtp
+    keyname: username
+  smtpPass:
+    secretname: supabase-smtp
+    keyname: password
+
+  externalPhoneEnabled: false
+  smsAutoconfirm: false
+
+  mailer:
+    externalHosts: "supabase.local"
+    urlPaths:
+      invite: "" # will default to <publicURL>/auth/v1/verify
+      confirmation: "" # will default to <publicURL>/auth/v1/verify
+      recovery: "" # will default to <publicURL>/auth/v1/verify
+      emailChange: "" # will default to <publicURL>/auth/v1/verify
+    subjects:
+      invite: "Welcome to the app!"
+      confirmation: "Please confirm your email for the app!"
+      recovery: "Reset your password for the app!"
+      magicLink: "Your magic link for the app!"
+      emailChange: "Confirm email change for the app!"
+    templates:
+      invite: ""
+      confirmation: ""
+      recovery: ""
+      magicLink: ""
+      emailChange: ""
+
+  defaultConfig: ""
+
   ## @param auth.extraConfig Supabase auth extra configuration
   ##
   extraConfig: {}
@@ -914,10 +625,8 @@ auth:
   ## @param auth.extraConfigExistingConfigmap The name of an existing ConfigMap with extra configuration
   ##
   extraConfigExistingConfigmap: ""
-  ## Bitnami Gotrue image
-  ## ref: https://hub.docker.com/r/bitnami/gotrue/tags/
   ## @param auth.image.registry [default: REGISTRY_NAME] Gotrue image registry
-  ## @param auth.image.repository [default: REPOSITORY_NAME/gotrue] Gotrue image repository
+  ## @param auth.image.repository [default: supabase/auth] Gotrue image repository
   ## @skip auth.image.tag Gotrue image tag (immutable tags are recommended)
   ## @param auth.image.digest Gotrue image digest in the way sha256:aa.... Please note this parameter, if set, will override the tag image tag (immutable tags are recommended)
   ## @param auth.image.pullPolicy Gotrue image pull policy
@@ -925,8 +634,8 @@ auth:
   ##
   image:
     registry: docker.io
-    repository: bitnami/gotrue
-    tag: 2.152.1-debian-12-r1
+    repository: supabase/auth
+    tag: v2.188.1
     digest: ""
     ## Specify a imagePullPolicy
     ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
@@ -998,12 +707,12 @@ auth:
   ## @param auth.customStartupProbe Custom startupProbe that overrides the default one
   ##
   customStartupProbe: {}
+  ## FIXME: replace or remove
   ## Supabase auth resource requests and limits
   ## ref: http://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
   ## @param auth.resourcesPreset Set container resources according to one common preset (allowed values: none, nano, micro, small, medium, large, xlarge, 2xlarge). This is ignored if auth.resources is set (auth.resources is recommended for production).
   ## More information: https://github.com/bitnami/charts/blob/main/bitnami/common/templates/_resources.tpl#L15
   ##
-  resourcesPreset: "micro"
   ## @param auth.resources Set container requests and limits for different resources like CPU or memory (essential for production workloads)
   ## Example:
   ## resources:
@@ -1298,6 +1007,421 @@ auth:
     ##
     ingressNSMatchLabels: {}
     ingressNSPodMatchLabels: {}
+
+functions:
+  enabled: true
+  diagnosticMode:
+    enabled: false
+    command:
+      - sleep
+    args:
+      - infinity
+  userFunctionsPath: /supabase/supabase-functions
+  entrypointPath: /home/deno/functions/main
+
+  # kongReadTimeoutMs: 60000
+  # kongWriteTimeoutMs: 60000
+  # kongConnectTimeoutMs: 60000
+  # kongRetries: 3
+
+  workerMemoryLimitMb: 150
+  workerTimeoutSec: 400
+  workerCPUTimeSoftLimitMs: 1000
+  workerCPUTimeHardLimitMs: 2000
+  workerNoModuleCache: false
+  workerForceCreate: false
+  workerNetAccessDisabled: false
+  # workerImportMapPath:  # no default value
+
+  replicaCount: 1
+  extraConfig: {}
+  existingConfigmap: ""
+  extraConfigExistingConfigmap: ""
+  image:
+    registry: docker.io
+    repository: supabase/edge-runtime
+    tag: v1.63.15
+    digest: ""
+    pullPolicy: IfNotPresent
+    pullSecrets: []
+
+  # FIXME: do properly!!!
+  imageVolume:
+    enabled: false
+    serverRoot: /public
+    image:
+      registry: docker.io
+      repository: supabase/edge-runtime
+      tag: v1.63.15
+      digest: ""
+      pullPolicy: IfNotPresent
+      pullSecrets: []
+
+  containerPorts:
+    http: 80
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 6
+    successThreshold: 1
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 6
+    successThreshold: 1
+  startupProbe:
+    enabled: false
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 6
+    successThreshold: 1
+  customLivenessProbe: {}
+  customReadinessProbe: {}
+  customStartupProbe: {}
+  ## FIXME: replace or remove
+  # resourcesPreset: "micro"
+  resources: {}
+  podSecurityContext:
+    enabled: false # FIXME:
+    fsGroupChangePolicy: Always
+    sysctls: []
+    supplementalGroups: []
+    fsGroup: 1001
+  containerSecurityContext:
+    enabled: false # FIXME:
+    seLinuxOptions: {}
+    runAsUser: 1001
+    runAsGroup: 1001
+    runAsNonRoot: true
+    privileged: false
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+    seccompProfile:
+      type: "RuntimeDefault"
+  command: []
+  args: []
+  automountServiceAccountToken: true # Enable for ambient mesh mTLS identity (was causing connection resets)
+  hostAliases: []
+  podLabels: {}
+  podAnnotations: {}
+  podAffinityPreset: ""
+  podAntiAffinityPreset: soft
+  nodeAffinityPreset:
+    type: ""
+    key: ""
+    values: []
+  affinity: {}
+  nodeSelector: {}
+  tolerations: []
+  updateStrategy:
+    type: RollingUpdate
+  priorityClassName: ""
+  topologySpreadConstraints: []
+  schedulerName: ""
+  terminationGracePeriodSeconds: ""
+  lifecycleHooks: {}
+  extraEnvVars: []
+  extraEnvVarsCM: ""
+  extraEnvVarsSecret: ""
+  extraVolumes: []
+  extraVolumeMounts: []
+  sidecars: []
+  initContainers: []
+  service:
+    type: ClusterIP
+    ports:
+      http: 80
+    nodePorts:
+      http: ""
+    clusterIP: ""
+    loadBalancerIP: ""
+    loadBalancerSourceRanges: []
+    externalTrafficPolicy: Cluster
+    annotations: {}
+    extraPorts: []
+    sessionAffinity: None
+    sessionAffinityConfig: {}
+  networkPolicy:
+    enabled: true
+    allowExternal: true
+    allowExternalEgress: true
+    extraIngress: []
+    extraEgress: []
+    ingressNSMatchLabels: {}
+    ingressNSPodMatchLabels: {}
+  persistence:
+    enabled: true
+    mountPath: /supabase/supabase-functions
+    subPath: ""
+    storageClass: ""
+    annotations: {}
+    accessModes:
+      - ReadWriteOnce
+    size: 8Gi
+    existingClaim: ""
+    selector: {}
+    dataSource: {}
+
+imgproxy:
+  enabled: true
+  diagnosticMode:
+    enabled: false
+    command:
+      - sleep
+    args:
+      - infinity
+  replicaCount: 1
+  extraConfig: {}
+  existingConfigmap: ""
+  extraConfigExistingConfigmap: ""
+  image:
+    # FIXME: why is upstream still using `image: darthsim/imgproxy:v3.8.0`?
+    registry: docker.io
+    repository: darthsim/imgproxy
+    tag: v3.31.1
+    digest: ""
+    pullPolicy: IfNotPresent
+    pullSecrets: []
+  containerPorts:
+    http: 5001
+  application:
+    # localFilesystemRoot: /
+    useEtag: true
+    enableWebpDetection: true
+
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 6
+    successThreshold: 1
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 6
+    successThreshold: 1
+  startupProbe:
+    enabled: false
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 6
+    successThreshold: 1
+  customLivenessProbe: {}
+  customReadinessProbe: {}
+  customStartupProbe: {}
+  ## FIXME: replace or remove
+  # resourcesPreset: "medium"
+  resources: {}
+  podSecurityContext:
+    enabled: true
+    fsGroupChangePolicy: Always
+    sysctls: []
+    supplementalGroups: []
+    fsGroup: 1001
+  containerSecurityContext:
+    enabled: true
+    seLinuxOptions: {}
+    runAsUser: 1001
+    runAsGroup: 1001
+    runAsNonRoot: true
+    privileged: false
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+    seccompProfile:
+      type: "RuntimeDefault"
+  command: []
+  args: []
+  automountServiceAccountToken: false
+  hostAliases: []
+  podLabels: {}
+  podAnnotations: {}
+  podAffinityPreset: ""
+  podAntiAffinityPreset: soft
+  nodeAffinityPreset:
+    type: ""
+    key: ""
+    values: []
+  affinity: {}
+  nodeSelector: {}
+  tolerations: []
+  updateStrategy:
+    type: RollingUpdate
+  priorityClassName: ""
+  topologySpreadConstraints: []
+  schedulerName: ""
+  terminationGracePeriodSeconds: ""
+  lifecycleHooks: {}
+  extraEnvVars: []
+  extraEnvVarsCM: ""
+  extraEnvVarsSecret: ""
+  extraVolumes: []
+  extraVolumeMounts: []
+  sidecars: []
+  initContainers: []
+  service:
+    type: ClusterIP
+    ports:
+      http: 5001
+    nodePorts:
+      http: ""
+    clusterIP: ""
+    loadBalancerIP: ""
+    loadBalancerSourceRanges: []
+    externalTrafficPolicy: Cluster
+    annotations: {}
+    extraPorts: []
+    sessionAffinity: None
+    sessionAffinityConfig: {}
+  networkPolicy:
+    enabled: true
+    allowExternal: true
+    allowExternalEgress: true
+    extraIngress: []
+    extraEgress: []
+    ingressNSMatchLabels: {}
+    ingressNSPodMatchLabels: {}
+  persistence:
+    enabled: true
+    mountPath: /supabase/supabase-imgproxy
+    subPath: ""
+    storageClass: ""
+    annotations: {}
+    accessModes:
+      - ReadWriteOnce
+    size: 8Gi
+    existingClaim: ""
+    selector: {}
+    dataSource: {}
+
+s3:
+  host: garage
+  port: 80
+  useSSL: false
+  accessKey:
+    secretname: s3-storage
+    keyname: username
+  secretKey:
+    secretname: s3-storage
+    keyname: password
+
+## @param publicURL Supabase API public URL
+##
+publicURL: ""
+## @param dbSSL Supabase API database connection mode for SSL. Applied to all components. Allowed values: verify-ca, verify-full, disable, allow, prefer, require
+## https://www.postgresql.org/docs/current/libpq-ssl.html
+##
+dbSSL: "disable"
+
+gateway:
+  # When true, this chart creates its own dedicated Gateway (and thus a dedicated LoadBalancer Service).
+  # Set to false to attach the ListenerSets/HTTPRoutes to an existing shared Gateway you manage elsewhere,
+  # avoiding a second LoadBalancer (required when sharing ports 80/443 with other workloads).
+  create: true
+  # Optional override for created gateway name (defaults to <release>-gateway)
+  name: "supabase-gateway"
+
+  # DNS hosts served by the Gateway; use dummy by default
+  gatewayClassName: "istio"
+  internalService:
+    externalName: "" # will default to the template "supabase.gateway.ingress.fqdn"
+  listenerset:
+    # add `cert-manager.io/cluster-issuer: "your-issuer"` for auto certs
+    annotations: {}
+  hosts:
+    - name: supabase.local
+      port: 80
+      tls:
+        enabled: true
+        certName: "supabase-local-tls"
+        port: 443
+  extraHosts: []
+
+  # Namespace where the created gateway should live (defaults to ingress namespace template)
+  namespace: ""
+  # Reference to an existing gateway (used only when create=false)
+  existing:
+    name: ""
+    namespace: ""
+  allowedRoutes:
+    namespaces:
+      # @param gateway.allowedRoutes.namespaces.from Allowed namespace scope for HTTPRoutes (All|Same|Selector)
+      from: All
+
+  # FIXME: the following is probably obsolete now!!!
+  tls:
+    enabled: true
+    hosts:
+      - name: supabase.local
+        credentialName: "supabase-local-tls"
+    extraHosts: []
+
+    ## Automated certificate issuance via cert-manager
+    ## When enabled, a cert-manager.io Certificate will be created in the istio.ingress.namespace
+    ## and will populate the secret referenced by credentialName (or the default <fullname>-tls)
+    certManager:
+      enabled: false
+      issuerRef:
+        # Set the name of an Issuer or ClusterIssuer (required when enabled)
+        name: ""
+        # Usually "Issuer" or "ClusterIssuer" (defaults to ClusterIssuer)
+        kind: ClusterIssuer
+        # group: cert-manager.io  # rarely needed unless using a different group
+      # Renewal / lifetime tuning (optional)
+      duration: 2160h # 90d
+      renewBefore: 360h # 15d
+      privateKey:
+        algorithm: RSA
+        size: 2048
+      # Extra DNS names to add in addition to gateway.hosts
+      extraDNSNames: []
+  # CORS customization (preflight shim). Add extra allowed request headers beyond the built-in list.
+  cors:
+    # @param gateway.cors.extraAllowedHeaders Additional headers to include in Access-Control-Allow-Headers for preflight.
+    extraAllowedHeaders: []
+
+## Istio ingress configuration (replaces Kong)
+istio:
+  enabled: true
+  # # Ingress gateway Service reference (namespace + service name) used by the Gateway and Certificate resources
+  ingress:
+    # @param istio.ingress.serviceName Name of the Istio ingressgateway Service
+    serviceName: istio-ingress
+    # @param istio.ingress.namespace Namespace where the ingressgateway Service (and its TLS Secret) live
+    namespace: istio-system
+
+  # gatewaySelector:
+  #   istio: ingressgateway
+
+  # redirectToTLS: false
+
+  # When true, create a separate HTTPRoute that redirects all HTTP traffic to HTTPS (308).
+  redirect:
+    enabled: false
+    statusCode: 308
+
+  # # Enable bootstrap creation of a shared gateway if create=false and an existing one is not found.
+  # bootstrapShared: false
+
+  # # Authorization (mirrors prior Kong key-auth + ACL). Disabled by default.
+  # # Authorization is always enforced (mirrors prior Kong key-auth + ACL) using waypoint-level policies.
+  # # No toggle provided; if istio.enabled is true policies will be rendered.
+  # authz:
+  #   # Reserved for future extensibility (currently only 'waypoint'). Changing this has no effect.
+  #   mode: waypoint
+
 ## @section Supabase Meta Parameters
 ##
 ##
@@ -1310,13 +1434,7 @@ meta:
   replicaCount: 1
   ## @param meta.defaultConfig [string] Default Supabase Postgres Meta configuration
   ##
-  defaultConfig: |
-    PG_META_DB_USER: {{ include "supabase.database.user" . | quote }}
-    PG_META_DB_HOST: {{ include "supabase.database.host" . | quote }}
-    PG_META_DB_PORT: {{ include "supabase.database.port" . | quote }}
-    PG_META_DB_NAME: {{ include "supabase.database.name" . | quote }}
-    PG_META_DB_SSL_MODE: {{ .Values.dbSSL | quote }}
-    PG_META_PORT: {{ .Values.meta.containerPorts.http | quote }}
+  defaultConfig: ""
   ## @param meta.extraConfig Extra Supabase Postgres Meta configuration
   ##
   extraConfig: {}
@@ -1326,8 +1444,6 @@ meta:
   ## @param meta.extraConfigExistingConfigmap The name of an existing ConfigMap with extra configuration
   ##
   extraConfigExistingConfigmap: ""
-  ## Bitnami Supabase Postgres Meta image
-  ## ref: https://hub.docker.com/r/bitnami/supabase-postgres-meta/tags/
   ## @param meta.image.registry [default: REGISTRY_NAME] Supabase Postgres Meta image registry
   ## @param meta.image.repository [default: REPOSITORY_NAME/supabase-postgres-meta] Supabase Postgres Meta image repository
   ## @skip meta.image.tag Supabase Postgres Meta image tag (immutable tags are recommended)
@@ -1335,10 +1451,18 @@ meta:
   ## @param meta.image.pullPolicy Supabase Postgres Meta image pull policy
   ## @param meta.image.pullSecrets Supabase Postgres Meta image pull secrets
   ##
+
+  ## @param meta.existingSecret Name of an existing secret containing the crypto key for Supabase meta
+  ##
+  existingSecret: "supabase-meta-crypto"
+  ## @param meta.existingSecretKey Key in the existing secret containing the crypto key for Supabase meta
+  ##
+  existingSecretKey: "cryptokey"
+
   image:
     registry: docker.io
-    repository: bitnami/supabase-postgres-meta
-    tag: 0.81.1-debian-12-r0
+    repository: supabase/postgres-meta
+    tag: v0.96.2
     digest: ""
     ## Specify a imagePullPolicy
     ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
@@ -1410,12 +1534,13 @@ meta:
   ## @param meta.customStartupProbe Custom startupProbe that overrides the default one
   ##
   customStartupProbe: {}
+  ## FIXME: replace or remove
   ## Supabase Postgres Meta resource requests and limits
   ## ref: http://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
   ## @param meta.resourcesPreset Set container resources according to one common preset (allowed values: none, nano, micro, small, medium, large, xlarge, 2xlarge). This is ignored if meta.resources is set (meta.resources is recommended for production).
   ## More information: https://github.com/bitnami/charts/blob/main/bitnami/common/templates/_resources.tpl#L15
   ##
-  resourcesPreset: "micro"
+  # resourcesPreset: "micro"
   ## @param meta.resources Set container requests and limits for different resources like CPU or memory (essential for production workloads)
   ## Example:
   ## resources:
@@ -1732,24 +1857,35 @@ realtime:
   ## @param realtime.existingSecretKey Key in the existing secret containing the key base for Supabase realtime
   ##
   existingSecretKey: "key-base"
+
   ## @param realtime.defaultConfig [string] Default configuration for Supabase realtime
   ##
-  ## FIXME: also had before, maybe put back!
-  ## REPLICATION_MODE: "RLS"
-  ## REPLICATION_POLL_INTERVAL: "100"
-  ## SECURE_CHANNELS: "true"
-  ## SLOT_NAME: "supabase_realtime_rls"
-  ## TEMPORARY_SLOT: "true"
-  defaultConfig: |
-    PORT: {{ .Values.realtime.containerPorts.http | quote }}
-    FLY_ALLOC_ID: "realtime"
-    FLY_APP_NAME: "realtime"
-    ERL_AFLAGS: "-proto_dist inet_tcp"
-    DB_AFTER_CONNECT_QUERY: "SET search_path TO _realtime"
-    DNS_NODES: "''"
-    ENABLE_TAILSCALE: "false"
-    MIX_ENV: "prod"
-    SLOT_NAME_SUFFIX: ""
+  defaultConfig:
+    ""
+    # PORT: {{ .Values.realtime.containerPorts.http | quote }}
+    # FLY_ALLOC_ID: "realtime"
+    # FLY_APP_NAME: "realtime"
+    # ERL_AFLAGS: "-proto_dist inet_tcp"
+    # DB_AFTER_CONNECT_QUERY: "SET search_path TO _realtime"
+    # DNS_NODES: "''"
+    # ENABLE_TAILSCALE: "false"
+    # MIX_ENV: "prod"
+    # SLOT_NAME_SUFFIX: ""
+
+  port: ""
+  flyAllocID: "realtime"
+  flyAppName: "realtime"
+  erlAflags: "-proto_dist inet_tcp"
+  dbAfterConnectQuery: "SET search_path TO _realtime"
+  dnsNodes: "''"
+  enableTailscale: "false"
+  mixEnv: "prod"
+  slotNameSuffix: ""
+  dashboard:
+    existingSecret:
+      name: "supabase-realtime-dashboard"
+      usernameKey: "username"
+      passwordKey: "password"
 
   ## @param realtime.initDefaultTenant [true | false] create the default tenant on initial bootstrap
   initDefaultTenant: "true"
@@ -1771,10 +1907,8 @@ realtime:
   ## @param realtime.extraConfigExistingConfigmap The name of an existing ConfigMap with extra configuration
   ##
   extraConfigExistingConfigmap: ""
-  ## Bitnami Realtime image
-  ## ref: https://hub.docker.com/r/bitnami/supabase-realtime/tags/
   ## @param realtime.image.registry [default: REGISTRY_NAME] Realtime image registry
-  ## @param realtime.image.repository [default: REPOSITORY_NAME/supabase-realtime] Realtime image repository
+  ## @param realtime.image.repository [default: supabase/realtime] Realtime image repository
   ## @skip realtime.image.tag Realtime image tag (immutable tags are recommended)
   ## @param realtime.image.digest Realtime image digest in the way sha256:aa.... Please note this parameter, if set, will override the tag image tag (immutable tags are recommended)
   ## @param realtime.image.pullPolicy Realtime image pull policy
@@ -1782,8 +1916,8 @@ realtime:
   ##
   image:
     registry: docker.io
-    repository: bitnami/supabase-realtime
-    tag: 2.29.5-debian-12-r0
+    repository: supabase/realtime
+    tag: v2.86.2
     digest: ""
     ## Specify a imagePullPolicy
     ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
@@ -1855,12 +1989,13 @@ realtime:
   ## @param realtime.customStartupProbe Custom startupProbe that overrides the default one
   ##
   customStartupProbe: {}
+  ## FIXME: replace or remove
   ## Supabase realtime resource requests and limits
   ## ref: http://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
   ## @param realtime.resourcesPreset Set container resources according to one common preset (allowed values: none, nano, micro, small, medium, large, xlarge, 2xlarge). This is ignored if realtime.resources is set (realtime.resources is recommended for production).
   ## More information: https://github.com/bitnami/charts/blob/main/bitnami/common/templates/_resources.tpl#L15
   ##
-  resourcesPreset: "medium"
+  # resourcesPreset: "medium"
   ## @param realtime.resources Set container requests and limits for different resources like CPU or memory (essential for production workloads)
   ## Example:
   ## resources:
@@ -2160,11 +2295,14 @@ rest:
   replicaCount: 1
   ## @param rest.defaultConfig [string] Default configuration for the Supabase rest service
   ##
-  defaultConfig: |
-    PGRST_DB_SCHEMA: "public,storage"
-    PGRST_DB_ANON_ROLE: "anon"
-    PGRST_DB_USE_LEGACY_GUCS: "false"
-    PGRST_SERVER_PORT: {{ .Values.rest.containerPorts.http | quote }}
+  anonRole: "anon"
+  dbSchema: "public,storage"
+  dbUseLegacyGucs: "false"
+  dbSchemas: "public,storage"
+  dbAggregatesEnabled: "true"
+
+  defaultConfig: ""
+
   ## @param rest.extraConfig Extra configuration for the Supabase rest service
   ##
   extraConfig: {}
@@ -2174,10 +2312,8 @@ rest:
   ## @param rest.extraConfigExistingConfigmap The name of an existing ConfigMap with extra configuration
   ##
   extraConfigExistingConfigmap: ""
-  ## Bitnami PostgREST image
-  ## ref: https://hub.docker.com/r/bitnami/postgrest/tags/
   ## @param rest.image.registry [default: REGISTRY_NAME] PostgREST image registry
-  ## @param rest.image.repository [default: REPOSITORY_NAME/postgrest] PostgREST image repository
+  ## @param rest.image.repository [default: postgrest/postgrest] PostgREST image repository
   ## @skip rest.image.tag PostgREST image tag (immutable tags are recommended)
   ## @param rest.image.digest PostgREST image digest in the way sha256:aa.... Please note this parameter, if set, will override the tag image tag (immutable tags are recommended)
   ## @param rest.image.pullPolicy PostgREST image pull policy
@@ -2185,8 +2321,8 @@ rest:
   ##
   image:
     registry: docker.io
-    repository: bitnami/postgrest
-    tag: 11.2.2-debian-12-r27
+    repository: postgrest/postgrest
+    tag: v14.6
     digest: ""
     ## Specify a imagePullPolicy
     ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
@@ -2258,12 +2394,13 @@ rest:
   ## @param rest.customStartupProbe Custom startupProbe that overrides the default one
   ##
   customStartupProbe: {}
+  ## FIXME: replace or remove
   ## Supabase rest resource requests and limits
   ## ref: http://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
   ## @param rest.resourcesPreset Set container resources according to one common preset (allowed values: none, nano, micro, small, medium, large, xlarge, 2xlarge). This is ignored if rest.resources is set (rest.resources is recommended for production).
   ## More information: https://github.com/bitnami/charts/blob/main/bitnami/common/templates/_resources.tpl#L15
   ##
-  resourcesPreset: "micro"
+  # resourcesPreset: "micro"
   ## @param rest.resources Set container requests and limits for different resources like CPU or memory (essential for production workloads)
   ## Example:
   ## resources:
@@ -2568,31 +2705,53 @@ storage:
   ## @param storage.replicaCount Number of Supabase storage replicas to deploy
   ##
   replicaCount: 1
+
+  ## @param storage.fileSizeLimit
+  ##
+  fileSizeLimit: 52428800
+  ## @param storage.uploadFileSizeLimit
+  ##
+  uploadFileSizeLimit: 52428800
+  ## @param storage.uploadFileSizeLimit
+  ##
+  uploadFileSizeLimitStandard: 52428800
+
+  postgrestUrl: "" # defaults to http://<rest-fullname>:<rest-port>
+  port: "" # default to storage.containerPorts.http
+  tenantId: "stub"
+  region: "stub"
+  globalS3Bucket: "stub"
+  dbInstallRoles: "false"
+  pgOptions: "-c search_path=storage,public"
+  globalS3Protocol: "http"
+  globalS3ForcePathStyle: "true"
+  awsDefaultRegion: "stub"
+  tusUrlPath: "/storage/v1/upload/resumable"
+  enableImageTransformation: "true"
+  imgproxyUrl: "" # defaults to http://<imgproxy-fullname>:<imgproxy-port>
+  globalS3Endpoint: "" # defaults to http(s)://<s3-host>:<s3-port>
+
   ## @param storage.defaultConfig [string] Default configuration for Supabase storage
   ##
-  defaultConfig: |
-    POSTGREST_URL: "http://{{ include "supabase.rest.fullname" . }}:{{ .Values.rest.service.ports.http }}"
-    FILE_STORAGE_BACKEND_PATH: {{ .Values.storage.persistence.mountPath | quote }}
-    PORT: {{ .Values.storage.containerPorts.http | quote }}
-    TENANT_ID: "stub"
-    REGION: "stub"
-    GLOBAL_S3_BUCKET: "stub"
-    DB_INSTALL_ROLES: "false"
-    PGOPTIONS: "-c search_path=storage,public"
-    FILE_SIZE_LIMIT: "52428800"
-    GLOBAL_S3_PROTOCOL: "http"
-    GLOBAL_S3_FORCE_PATH_STYLE: "true"
-    AWS_DEFAULT_REGION: "stub"
-    {{- if and .Values.imgproxy.enabled .Values.minio.enabled }}
-    ENABLE_IMAGE_TRANSFORMATION: "true"
-    IMGPROXY_URL: "http://{{ include "supabase.imgproxy.fullname" . }}:{{ .Values.imgproxy.service.ports.http }}"
-    {{- end }}
-    {{- if .Values.minio.enabled }}
-    GLOBAL_S3_ENDPOINT: http://{{ include "common.names.fullname" .Subcharts.minio }}:{{ default 9000 .Values.minio.service.ports.api }}
-    STORAGE_BACKEND: "s3"
-    {{- else }}
-    STORAGE_BACKEND: "file"
-    {{- end }}
+  defaultConfig:
+    ""
+    # POSTGREST_URL: "http://{{ include "supabase.rest.fullname" . }}:{{ .Values.rest.service.ports.http }}"
+    # PORT: {{ .Values.storage.containerPorts.http | quote }}
+    # TENANT_ID: "stub"
+    # REGION: "stub"
+    # GLOBAL_S3_BUCKET: "stub"
+    # DB_INSTALL_ROLES: "false"
+    # PGOPTIONS: "-c search_path=storage,public"
+    # GLOBAL_S3_PROTOCOL: "http"
+    # GLOBAL_S3_FORCE_PATH_STYLE: "true"
+    # AWS_DEFAULT_REGION: "stub"
+    # TUS_URL_PATH: "/storage/v1/upload/resumable"
+    # {{- if .Values.imgproxy.enabled }}
+    # ENABLE_IMAGE_TRANSFORMATION: "true"
+    # IMGPROXY_URL: "http://{{ include "supabase.imgproxy.fullname" . }}:{{ .Values.imgproxy.service.ports.http }}"
+    # {{- end }}
+    # GLOBAL_S3_ENDPOINT: {{ printf "%s://%s:%v" (ternary "https" "http" .Values.s3.useSSL) .Values.s3.host (.Values.s3.port | int) | quote }}
+    # STORAGE_BACKEND: "s3"
 
   ## @param storage.extraConfig Extra configuration for Supabase storage
   ##
@@ -2603,10 +2762,8 @@ storage:
   ## @param storage.extraConfigExistingConfigmap The name of an existing ConfigMap with extra configuration
   ##
   extraConfigExistingConfigmap: ""
-  ## Bitnami Storage image
-  ## ref: https://hub.docker.com/r/bitnami/supabase-storage/tags/
   ## @param storage.image.registry [default: REGISTRY_NAME] Storage image registry
-  ## @param storage.image.repository [default: REPOSITORY_NAME/supabase-storage] Storage image repository
+  ## @param storage.image.repository [default: supabase/storage-api] Storage image repository
   ## @skip storage.image.tag Storage image tag (immutable tags are recommended)
   ## @param storage.image.digest Storage image digest in the way sha256:aa.... Please note this parameter, if set, will override the tag image tag (immutable tags are recommended)
   ## @param storage.image.pullPolicy Storage image pull policy
@@ -2614,8 +2771,8 @@ storage:
   ##
   image:
     registry: docker.io
-    repository: bitnami/supabase-storage
-    tag: 1.3.3-debian-12-r0
+    repository: supabase/storage-api
+    tag: v1.48.5
     digest: ""
     ## Specify a imagePullPolicy
     ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
@@ -2687,12 +2844,13 @@ storage:
   ## @param storage.customStartupProbe Custom startupProbe that overrides the default one
   ##
   customStartupProbe: {}
+  ## FIXME: replace or remove
   ## Supabase storage resource requests and limits
   ## ref: http://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
   ## @param storage.resourcesPreset Set container resources according to one common preset (allowed values: none, nano, micro, small, medium, large, xlarge, 2xlarge). This is ignored if storage.resources is set (storage.resources is recommended for production).
   ## More information: https://github.com/bitnami/charts/blob/main/bitnami/common/templates/_resources.tpl#L15
   ##
-  resourcesPreset: "medium"
+  # resourcesPreset: "medium"
   ## @param storage.resources Set container requests and limits for different resources like CPU or memory (essential for production workloads)
   ## Example:
   ## resources:
@@ -2999,7 +3157,7 @@ storage:
     enabled: true
     ## @param storage.persistence.mountPath Path to mount the volume at.
     ##
-    mountPath: /bitnami/supabase-storage
+    mountPath: /supabase/supabase-storage
     ## @param storage.persistence.subPath The subdirectory of the volume to mount to, useful in dev environments and one PV for multiple services
     ##
     subPath: ""
@@ -3050,33 +3208,20 @@ studio:
   replicaCount: 1
   ## @param studio.defaultConfig [string] Supabase studio default configuration
   ##
-  defaultConfig: |
-    SUPABASE_URL: "http://{{ include "supabase.kong.fullname" . }}.{{ include "common.names.namespace" . }}.svc.{{ .Values.clusterDomain }}:{{ .Values.kong.service.ports.proxyHttp }}"
-    STUDIO_PG_META_URL: "http://{{ include "supabase.kong.fullname" . }}.{{ include "common.names.namespace" . }}.svc.{{ .Values.clusterDomain }}:{{ .Values.kong.service.ports.proxyHttp }}/pg"
-    SUPABASE_PUBLIC_URL: {{ include "supabase.api.publicURL" . | quote }}
-    PORT: {{ .Values.studio.containerPorts.http | quote }}
-    {{- if .Values.analytics.enabled }}
-    LOGFLARE_URL: "http://{{ include "supabase.analytics.fullname" . }}:{{ .Values.analytics.service.ports.http }}"
-    NEXT_PUBLIC_ENABLE_LOGS: "true"
-    {{- end }}
+  defaultConfig: ""
+
+  ## @param studio.analytics.backendProvider [string] The backend provider for analytics, "postgres" or "bigquery"
+  ##
+  analytics:
+    backendProvider: postgres
+
   ## @param studio.extraEnvVars Array with extra environment variables to add to Supabase studio nodes
   ## e.g:
   ## extraEnvVars:
   ##   - name: FOO
   ##     value: "bar"
   ##
-  extraEnvVars:
-    # - name: STUDIO_DEFAULT_ORGANIZATION
-    #   value: "default"
-    # - name: STUDIO_DEFAULT_PROJECT
-    #   value: "default"
-    - name: NEXT_ANALYTICS_BACKEND_PROVIDER
-      value: postgres  # postgres, bigquery
-    - name: LOGFLARE_API_KEY
-      valueFrom:
-        secretKeyRef:
-          name: supaplus-logflare
-          key: api-key
+  extraEnvVars: {}
 
   ## @param studio.extraConfig Supabase studio extra configuration
   ##
@@ -3087,10 +3232,8 @@ studio:
   ## @param studio.extraConfigExistingConfigmap The name of an existing ConfigMap with extra configuration
   ##
   extraConfigExistingConfigmap: ""
-  ## Bitnami Studio image
-  ## ref: https://hub.docker.com/r/bitnami/supabase-studio/tags/
   ## @param studio.image.registry [default: REGISTRY_NAME] Studio image registry
-  ## @param studio.image.repository [default: REPOSITORY_NAME/supabase-studio] Studio image repository
+  ## @param studio.image.repository [default: REPOSITORY_NAME/studio] Studio image repository
   ## @skip studio.image.tag Studio image tag (immutable tags are recommended)
   ## @param studio.image.digest Studio image digest in the way sha256:aa.... Please note this parameter, if set, will override the tag image tag (immutable tags are recommended)
   ## @param studio.image.pullPolicy Studio image pull policy
@@ -3098,8 +3241,8 @@ studio:
   ##
   image:
     registry: docker.io
-    repository: bitnami/supabase-studio
-    tag: 1.24.4-debian-12-r0
+    repository: supabase/studio
+    tag: 2026.03.30-sha-12a43e5
     digest: ""
     ## Specify a imagePullPolicy
     ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
@@ -3171,12 +3314,13 @@ studio:
   ## @param studio.customStartupProbe Custom startupProbe that overrides the default one
   ##
   customStartupProbe: {}
+    ## FIXME: replace or remove
   ## Supabase studio resource requests and limits
   ## ref: http://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
   ## @param studio.resourcesPreset Set container resources according to one common preset (allowed values: none, nano, micro, small, medium, large, xlarge, 2xlarge). This is ignored if studio.resources is set (studio.resources is recommended for production).
   ## More information: https://github.com/bitnami/charts/blob/main/bitnami/common/templates/_resources.tpl#L15
   ##
-  resourcesPreset: "micro"
+  # resourcesPreset: "micro"
   ## @param studio.resources Set container requests and limits for different resources like CPU or memory (essential for production workloads)
   ## Example:
   ## resources:
@@ -3464,106 +3608,6 @@ studio:
     ##
     ingressNSMatchLabels: {}
     ingressNSPodMatchLabels: {}
-  ## ref: http://kubernetes.io/docs/concepts/services-networking/ingress/
-  ##
-  ingress:
-    ## @param studio.ingress.enabled Enable ingress record generation for Supabase
-    ##
-    enabled: false
-    ## @param studio.ingress.pathType Ingress path type
-    ##
-    pathType: ImplementationSpecific
-    ## @param studio.ingress.hostname Default host for the ingress record
-    ##
-    hostname: supabase-studio.local
-    ## @param studio.ingress.ingressClassName IngressClass that will be be used to implement the Ingress (Kubernetes 1.18+)
-    ## This is supported in Kubernetes 1.18+ and required if you have more than one IngressClass marked as the default for your cluster .
-    ## ref: https://kubernetes.io/blog/2020/04/02/improvements-to-the-ingress-api-in-kubernetes-1.18/
-    ##
-    ingressClassName: ""
-    ## @param studio.ingress.path Default path for the ingress record
-    ## NOTE: You may need to set this to '/*' in order to use this with ALB ingress controllers
-    ##
-    path: /
-    ## @param studio.ingress.annotations Additional annotations for the Ingress resource. To enable certificate autogeneration, place here your cert-manager annotations.
-    ## Use this parameter to set the required annotations for cert-manager, see
-    ## ref: https://cert-manager.io/docs/usage/ingress/#supported-annotations
-    ## e.g:
-    ## annotations:
-    ##   kubernetes.io/ingress.class: nginx
-    ##   cert-manager.io/cluster-issuer: cluster-issuer-name
-    ##
-    annotations: {}
-    ## @param studio.ingress.tls Enable TLS configuration for the host defined at `studio.ingress.hostname` parameter
-    ## TLS certificates will be retrieved from a TLS secret with name: `{{- printf "%s-tls" .Values.ingress.hostname }}`
-    ## You can:
-    ##   - Use the `studio.ingress.secrets` parameter to create this TLS secret
-    ##   - Rely on cert-manager to create it by setting the corresponding annotations
-    ##   - Rely on Helm to create self-signed certificates by setting `studio.ingress.selfSigned=true`
-    ##
-    tls: false
-    ## @param studio.ingress.selfSigned Create a TLS secret for this ingress record using self-signed certificates generated by Helm
-    ##
-    selfSigned: false
-    ## @param studio.ingress.extraHosts An array with additional hostname(s) to be covered with the ingress record
-    ## e.g:
-    ## extraHosts:
-    ##   - name: supabase.local
-    ##     path: /
-    ##
-    extraHosts: []
-    ## @param studio.ingress.extraPaths An array with additional arbitrary paths that may need to be added to the ingress under the main host
-    ## e.g:
-    ## extraPaths:
-    ## - path: /*
-    ##   auth:
-    ##     serviceName: ssl-redirect
-    ##     servicePort: use-annotation
-    ##
-    extraPaths: []
-    ## @param studio.ingress.extraTls TLS configuration for additional hostname(s) to be covered with this ingress record
-    ## ref: https://kubernetes.io/docs/concepts/services-networking/ingress/#tls
-    ## e.g:
-    ## extraTls:
-    ## - hosts:
-    ##     - supabase.local
-    ##   secretName: supabase.local-tls
-    ##
-    extraTls: []
-    ## @param studio.ingress.secrets Custom TLS certificates as secrets
-    ## NOTE: 'key' and 'certificate' are expected in PEM format
-    ## NOTE: 'name' should line up with a 'secretName' set further up
-    ## If it is not set and you're using cert-manager, this is unneeded, as it will create a secret for you with valid certificates
-    ## If it is not set and you're NOT using cert-manager either, self-signed certificates will be created valid for 365 days
-    ## It is also possible to create and manage the certificates outside of this helm chart
-    ## Please see README.md for more information
-    ## e.g:
-    ## secrets:
-    ##   - name: supabase.local-tls
-    ##     key: |-
-    ##       -----BEGIN RSA PRIVATE KEY-----
-    ##       ...
-    ##       -----END RSA PRIVATE KEY-----
-    ##     certificate: |-
-    ##       -----BEGIN CERTIFICATE-----
-    ##       ...
-    ##       -----END CERTIFICATE-----
-    ##
-    secrets: []
-    ## @param studio.ingress.extraRules Additional rules to be covered with this ingress record
-    ## ref: https://kubernetes.io/docs/concepts/services-networking/ingress/#ingress-rules
-    ## e.g:
-    ## extraRules:
-    ## - host: example.local
-    ##     http:
-    ##       path: /
-    ##       auth:
-    ##         service:
-    ##           name: example-svc
-    ##           port:
-    ##             name: http
-    ##
-    extraRules: []
 ## @section Init Container Parameters
 ##
 
@@ -3576,7 +3620,7 @@ volumePermissions:
   ##
   enabled: false
   ## OS Shell + Utility image
-  ## ref: https://hub.docker.com/r/bitnami/os-shell/tags/
+  ## ref: https://hub.docker.com/r/bitnamilegacy/os-shell/tags/
   ## @param volumePermissions.image.registry [default: REGISTRY_NAME] OS Shell + Utility image registry
   ## @param volumePermissions.image.repository [default: REPOSITORY_NAME/os-shell] OS Shell + Utility image repository
   ## @skip volumePermissions.image.tag OS Shell + Utility image tag (immutable tags are recommended)
@@ -3584,9 +3628,10 @@ volumePermissions:
   ## @param volumePermissions.image.pullSecrets OS Shell + Utility image pull secrets
   ##
   image:
+    # FIXME: remove!!!
     registry: docker.io
-    repository: bitnami/os-shell
-    tag: 12-debian-12-r22
+    repository: bitnamilegacy/os-shell
+    tag: 12-debian-12-r51
     pullPolicy: IfNotPresent
     ## Optionally specify an array of imagePullSecrets.
     ## Secrets must be manually created in the namespace.
@@ -3596,12 +3641,14 @@ volumePermissions:
     ##   - myRegistryKeySecretName
     ##
     pullSecrets: []
+
+  ## FIXME: replace or remove
   ## Init container's resource requests and limits
   ## ref: http://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
   ## @param volumePermissions.resourcesPreset Set container resources according to one common preset (allowed values: none, nano, micro, small, medium, large, xlarge, 2xlarge). This is ignored if volumePermissions.resources is set (volumePermissions.resources is recommended for production).
   ## More information: https://github.com/bitnami/charts/blob/main/bitnami/common/templates/_resources.tpl#L15
   ##
-  resourcesPreset: "micro"
+  # resourcesPreset: "micro"
   ## @param volumePermissions.resources Set container requests and limits for different resources like CPU or memory (essential for production workloads)
   ## Example:
   ## resources:
@@ -3624,10 +3671,9 @@ volumePermissions:
   containerSecurityContext:
     seLinuxOptions: {}
     runAsUser: 0
-## Bitnami PostgreSQL image
-## ref: https://hub.docker.com/r/bitnami/supabase-postgres/tags/
+
 ## @param psqlImage.registry [default: REGISTRY_NAME] PostgreSQL client image registry
-## @param psqlImage.repository [default: REPOSITORY_NAME/supabase-postgres] PostgreSQL client image repository
+## @param psqlImage.repository [default: REPOSITORY_NAME/postgres] PostgreSQL client image repository
 ## @param psqlImage.digest PostgreSQL client image digest (overrides image tag)
 ## @skip psqlImage.tag PostgreSQL client image tag (immutable tags are recommended)
 ## @param psqlImage.pullPolicy PostgreSQL client image pull policy
@@ -3636,8 +3682,8 @@ volumePermissions:
 ##
 psqlImage:
   registry: docker.io
-  repository: bitnami/supabase-postgres
-  tag: 15.1.1-debian-12-r65
+  repository: postgres
+  tag: 18-alpine
   digest: ""
   ## Specify a imagePullPolicy
   ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
@@ -3655,6 +3701,7 @@ psqlImage:
   ## Set to true if you would like to see extra information on logs
   ##
   debug: false
+
 ## @section Other Parameters
 ##
 
@@ -3678,199 +3725,8 @@ serviceAccount:
   ## @param serviceAccount.automountServiceAccountToken Automount service account token for the server service account
   ##
   automountServiceAccountToken: false
-## @section Kong sub-chart parameters
-##
-kong:
-  ## @param kong.enabled Enable Kong
-  ##
-  enabled: true
-  ## @param kong.database Database to use
-  # We will use declarative configuration so we don't need the database
-  database: "off"
-  ## @param kong.initContainers [string] Add additional init containers to the Kong pods
-  ##
-  initContainers: |
-    - name: render-kong-declarative-conf
-      image: '{{ include "kong.image" . }}'
-      command:
-        - /bin/bash
-      args:
-        - -ec
-        - |
-          #!/bin/bash
-
-          . /opt/bitnami/scripts/liblog.sh
-
-          # We need to generate it in the tmp folder to ensure that we have write permissions
-          info "Rendering Supabase declarative config template"
-          render-template /bitnami/kong/declarative-template/kong.yml.tpl > "/bitnami/kong/declarative-conf/kong.yml"
-      volumeMounts:
-        - name: declarative-conf-template
-          mountPath: /bitnami/kong/declarative-template/
-        - name: rendered-declarative-conf
-          mountPath: /bitnami/kong/declarative-conf/
-      {{- if .Values.containerSecurityContext.enabled }}
-      securityContext: {{- omit .Values.containerSecurityContext "enabled" | toYaml | nindent 6 }}
-      {{- end }}
-      env:
-        - name: SUPABASE_ANON_KEY
-          valueFrom:
-            secretKeyRef:
-              name: '{{ include "supabase.jwt.secretName" . }}'
-              key: '{{ include "supabase.jwt.anonSecretKey" . }}'
-        - name: SUPABASE_SERVICE_KEY
-          valueFrom:
-            secretKeyRef:
-              name: '{{ include "supabase.jwt.secretName" . }}'
-              key: '{{ include "supabase.jwt.serviceSecretKey" . }}'
-  ## @param kong.ingressController.enabled Enable Kong Ingress Controller
-  ##
-  ingressController:
-    enabled: false
-  ## @param kong.kong.extraVolumeMounts [array] Additional volumeMounts to the Kong container
-  ## @param kong.kong.extraEnvVars [array] Additional environment variables to set
-  ##
-  kong:
-    extraVolumeMounts:
-      - name: rendered-declarative-conf
-        mountPath: /bitnami/kong/declarative-conf/
-    extraEnvVars:
-      - name: KONG_DECLARATIVE_CONFIG
-        value: "/bitnami/kong/declarative-conf/kong.yml"
-      - name: KONG_DNS_ORDER
-        value: LAST,A,CNAME
-      - name: KONG_PLUGINS
-        value: request-transformer,cors,key-auth,acl
-    ## Container resource requests and limits
-    ## ref: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
-    ## @param kong.kong.resourcesPreset Set container resources according to one common preset (allowed values: none, nano, small, medium, large, xlarge, 2xlarge). This is ignored if kong.resources is set (kong.resources is recommended for production).
-    ## More information: https://github.com/bitnami/charts/blob/main/bitnami/common/templates/_resources.tpl#L15
-    ##
-    resourcesPreset: "medium"
-    ## @param kong.kong.resources Set container requests and limits for different resources like CPU or memory (essential for production workloads)
-    ## Example:
-    ## resources:
-    ##   requests:
-    ##     cpu: 2
-    ##     memory: 512Mi
-    ##   limits:
-    ##     cpu: 3
-    ##     memory: 1024Mi
-    ##
-    resources: {}
-  ## @param kong.extraVolumes [array] Additional volumes to the Kong pods
-  ##
-  extraVolumes:
-    - name: declarative-conf-template
-      configMap:
-        name: "{{ .Release.Name }}-kong-declarative-config"
-    - name: rendered-declarative-conf
-      emptyDir: {}
-  ## @param kong.ingress.enabled Enable Ingress rule
-  ## @param kong.ingress.hostname Kong Ingress hostname
-  ## @param kong.ingress.tls Enable TLS for Kong Ingress
-  ##
-  ingress:
-    enabled: false
-    hostname: "supabase.local"
-    tls: false
-  ## @param kong.service.loadBalancerIP Kubernetes service LoadBalancer IP
-  ## @param kong.service.type Kubernetes service type
-  ## @param kong.service.ports.proxyHttp Kong service port
-  ##
-  service:
-    loadBalancerIP: ""
-    type: LoadBalancer
-    ports:
-      proxyHttp: 80
-
-  ## @param kong.postgresql.enabled Switch to enable or disable the PostgreSQL helm chart inside the Kong subchart
-  ##
-  postgresql:
-    enabled: false
-## @section PostgreSQL sub-chart parameters
-##
-
-## PostgreSQL chart configuration
-## ref: https://github.com/bitnami/charts/blob/main/bitnami/postgresql/values.yaml
-## @param postgresql.enabled Switch to enable or disable the PostgreSQL helm chart
-## @param postgresql.auth.existingSecret Name of existing secret to use for PostgreSQL credentials
-## @param postgresql.architecture PostgreSQL architecture (`standalone` or `replication`)
-## @param postgresql.service.ports.postgresql PostgreSQL service port
-##
-postgresql:
-  enabled: true
-  ## Bitnami PostgreSQL image version
-  ## ref: https://hub.docker.com/r/bitnami/supabase-postgres/tags/
-  ## @param postgresql.image.registry [default: REGISTRY_NAME] PostgreSQL image registry
-  ## @param postgresql.image.repository [default: REPOSITORY_NAME/supabase-postgres] PostgreSQL image repository
-  ## @skip postgresql.image.tag PostgreSQL image tag (immutable tags are recommended)
-  ## @param postgresql.image.digest PostgreSQL image digest in the way sha256:aa.... Please note this parameter, if set, will override the tag
-  ## @param postgresql.image.pullPolicy PostgreSQL image pull policy
-  ## @param postgresql.image.pullSecrets Specify image pull secrets
-  ## @param postgresql.image.debug Specify if debug values should be set
-  ##
-  image:
-    registry: docker.io
-    repository: bitnami/supabase-postgres
-    tag: 15.1.1-debian-12-r65
-    digest: ""
-    ## Specify a imagePullPolicy
-    ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
-    ## ref: https://kubernetes.io/docs/concepts/containers/images/#pre-pulled-images
-    ##
-    pullPolicy: IfNotPresent
-    ## Optionally specify an array of imagePullSecrets.
-    ## Secrets must be manually created in the namespace.
-    ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
-    ## Example:
-    ## pullSecrets:
-    ##   - myRegistryKeySecretName
-    ##
-    pullSecrets: []
-    ## Set to true if you would like to see extra information on logs
-    ##
-    debug: false
-  ## @param postgresql.postgresqlSharedPreloadLibraries Set the shared_preload_libraries parameter in postgresql.conf
-  ## Setting an empty value in order to force the default extensions of supabase-postgres
-  ##
-  postgresqlSharedPreloadLibraries: "pg_stat_statements, pg_stat_monitor, pgaudit, plpgsql, plpgsql_check, pg_cron, pg_net, pgsodium, timescaledb, auto_explain"
-  ## @param postgresql.auth.postgresPassword PostgreSQL admin password
-  ## @param postgresql.auth.existingSecret Name of existing secret to use for PostgreSQL credentials
-  ## supabase-postgres creates its own hardcoded user supabase_admin so we cannot allow modifications
-  ##
-  auth:
-    postgresPassword: ""
-    existingSecret: ""
-  ## @param postgresql.architecture PostgreSQL architecture (`standalone` or `replication`)
-  ##
-  architecture: standalone
-  ## @param postgresql.service.ports.postgresql PostgreSQL service port
-  ##
-  service:
-    ports:
-      postgresql: 5432
-  primary:
-    ## PostgreSQL Primary resource requests and limits
-    ## ref: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
-    ## @param postgresql.primary.resourcesPreset Set container resources according to one common preset (allowed values: none, nano, small, medium, large, xlarge, 2xlarge). This is ignored if primary.resources is set (primary.resources is recommended for production).
-    ## More information: https://github.com/bitnami/charts/blob/main/bitnami/common/templates/_resources.tpl#L15
-    ##
-    resourcesPreset: "nano"
-    ## @param postgresql.primary.resources Set container requests and limits for different resources like CPU or memory (essential for production workloads)
-    ## Example:
-    ## resources:
-    ##   requests:
-    ##     cpu: 2
-    ##     memory: 512Mi
-    ##   limits:
-    ##     cpu: 3
-    ##     memory: 1024Mi
-    ##
-    resources: {}
 
 ## External PostgreSQL configuration
-## All of these values are only used when postgresql.enabled is set to false
 ## @param externalDatabase.host Database host
 ## @param externalDatabase.port Database port number
 ## @param externalDatabase.user Non-root username for PostgreSQL
@@ -3880,10 +3736,40 @@ postgresql:
 ## @param externalDatabase.existingSecretPasswordKey Name of an existing secret key containing the database credentials
 ##
 externalDatabase:
-  host: ""
+  host: "supabase-cluster"
   port: 5432
   user: supabase_admin
   database: postgres
   password: ""
   existingSecret: ""
   existingSecretPasswordKey: ""
+
+vector:
+  image:
+    tag: 0.54.X-debian # or -distroless-libc, -distroless-static, -alpine, etc. See https://hub.docker.com/r/timberio/vector/tags for more details
+
+  dataDir: "/vector-data-dir"
+  role: "Agent"
+  enabled: true
+  existingConfigMaps:
+    - "supabase-vectoragent-config"
+  containerPorts:
+    - name: prom-exporter
+      containerPort: 9090
+      protocol: TCP
+  service:
+    ports:
+      - protocol: TCP
+        port: 80
+        targetPort: 9090
+  env:
+    - name: LOGFLARE_API_KEY
+      valueFrom:
+        secretKeyRef:
+          name: supabase-logflare
+          key: api-key
+    - name: LOGFLARE_PUBLIC_ACCESS_TOKEN
+      valueFrom:
+        secretKeyRef:
+          name: supabase-logflare
+          key: api-key

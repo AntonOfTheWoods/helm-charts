@@ -120,8 +120,6 @@ spec:
             {{- end }}
           {{- if .Values.imgproxy.resources }}
           resources: {{- toYaml .Values.imgproxy.resources | nindent 12 }}
-          {{- else if ne .Values.imgproxy.resourcesPreset "none" }}
-          resources: {{- include "common.resources.preset" (dict "type" .Values.imgproxy.resourcesPreset) | nindent 12 }}
           {{- end }}
           ports:
             - name: http

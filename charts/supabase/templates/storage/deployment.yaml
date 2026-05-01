@@ -36,7 +36,11 @@ spec:
         {{- if .Values.storage.extraConfig }}
         checksum/extra-configmap: {{ include (print $.Template.BasePath "/storage/extra-configmap.yaml") . | sha256sum }}
         {{- end }}
-        checksum/jwt-secret: {{ include (print $.Template.BasePath "/jwt-secret.yaml") . | sha256sum }}
+        {{- $ns := include "common.names.namespace" . -}}
+        {{- $jwtSec := lookup "v1" "Secret" $ns (include "supabase.jwt.secretName" .) -}}
+        {{- if $jwtSec }}
+        checksum/jwt-secret: {{ toYaml $jwtSec.data | sha256sum }}
+        {{- end }}
       labels: {{- include "common.labels.standard" ( dict "customLabels" $podLabels "context" $ ) | nindent 8 }}
         app.kubernetes.io/part-of: supabase
         app.kubernetes.io/component: storage
@@ -102,7 +106,7 @@ spec:
               mountPath: /tmp
               subPath: tmp-dir
         {{- end }}
-        {{- include "supabase.waitForDBInitContainer" . | nindent 8 }}
+        {{- include "supabase.database.checkdbready" . | nindent 8 }}
         {{- end }}
         {{- if .Values.storage.initContainers }}
           {{- include "common.tplvalues.render" (dict "value" .Values.storage.initContainers "context" $) | nindent 8 }}
@@ -118,22 +122,22 @@ spec:
           command: {{- include "common.tplvalues.render" (dict "value" .Values.diagnosticMode.command "context" $) | nindent 12 }}
           {{- else if .Values.storage.command }}
           command: {{- include "common.tplvalues.render" (dict "value" .Values.storage.command "context" $) | nindent 12 }}
-          {{- else }}
-          command:
-            - /bin/bash
+          # {{- else }}
+          # command:
+          #   - /bin/bash
           {{- end }}
           {{- if .Values.diagnosticMode.enabled }}
           args: {{- include "common.tplvalues.render" (dict "value" .Values.diagnosticMode.args "context" $) | nindent 12 }}
           {{- else if .Values.storage.args }}
           args: {{- include "common.tplvalues.render" (dict "value" .Values.storage.args "context" $) | nindent 12 }}
-          {{- else }}
-          args:
-            - -ec
-            - |
-              #!/bin/bash
+          # {{- else }}
+          # args:
+          #   - -ec
+          #   - |
+          #     #!/bin/bash
 
-              cd /opt/bitnami/supabase-storage
-              node dist/server.js
+          #     cd /opt/bitnami/supabase-storage
+          #     node dist/server.js
           {{- end }}
           env:
             {{ include "supabase.database.envvars" . | indent 12 }}
@@ -158,6 +162,71 @@ spec:
             {{- if .Values.storage.extraEnvVars }}
             {{- include "common.tplvalues.render" (dict "value" .Values.storage.extraEnvVars "context" $) | nindent 12 }}
             {{- end }}
+
+            # FIXME: this is in the supabase/supabase docker compose but not in the actual project repo compose?!?!?
+            - name: FILE_SIZE_LIMIT
+              value: {{ .Values.storage.fileSizeLimit | quote }}
+            - name: UPLOAD_FILE_SIZE_LIMIT
+              value: {{ .Values.storage.uploadFileSizeLimit | quote }}
+            - name: UPLOAD_FILE_SIZE_LIMIT_STANDARD
+              value: {{ .Values.storage.uploadFileSizeLimitStandard | quote }}
+
+            - name: POSTGREST_URL
+              value: "http://{{ include "supabase.rest.fullname" . }}:{{ .Values.rest.service.ports.http }}"
+            - name: FILE_STORAGE_BACKEND_PATH
+              value: {{ .Values.storage.persistence.mountPath | quote }}
+            - name: PORT
+              value: {{ .Values.storage.containerPorts.http | quote }}
+            - name: TENANT_ID
+              value: {{ .Values.storage.tenantID | default "stub" | quote }}
+            - name: REGION
+              value: {{ .Values.storage.region | default "stub" | quote }}
+            - name: GLOBAL_S3_BUCKET
+              value: {{ .Values.storage.globalS3Bucket | default "stub" | quote }}
+            - name: DB_INSTALL_ROLES
+              value: {{ .Values.storage.dbInstallRoles | default "false" | quote }}
+            - name: PGOPTIONS
+              value: {{ .Values.storage.pgOptions | default "-c search_path=storage,public" | quote }}
+            - name: GLOBAL_S3_PROTOCOL
+              value: {{ .Values.storage.globalS3Protocol | default (ternary "https" "http" .Values.s3.useSSL) | quote }}
+            - name: GLOBAL_S3_FORCE_PATH_STYLE
+              value: {{ .Values.storage.globalS3ForcePathStyle | default "true" | quote }}
+            - name: AWS_DEFAULT_REGION
+              value: {{ .Values.storage.awsDefaultRegion | default "stub" | quote }}
+            - name: TUS_URL_PATH
+              value: {{ .Values.storage.tusURLPath | default "/storage/v1/upload/resumable" | quote }}
+            {{- if .Values.imgproxy.enabled }}
+            - name: ENABLE_IMAGE_TRANSFORMATION
+              value: {{ .Values.storage.enableImageTransformation | default "true" | quote }}
+            - name: IMGPROXY_URL
+            {{- if .Values.storage.imgproxyUrl }}
+              value: {{ .Values.storage.imgproxyUrl | quote }}
+            {{- else }}
+              value: "http://{{ include "supabase.imgproxy.fullname" . }}:{{ .Values.imgproxy.service.ports.http }}"
+            {{- end }}
+            {{- end }}
+
+            - name: GLOBAL_S3_ENDPOINT
+            {{- if .Values.storage.globalS3Endpoint }}
+              value: {{ .Values.storage.globalS3Endpoint | quote }}
+            {{- else }}
+              value: {{ printf "%s://%s:%v" (ternary "https" "http" .Values.s3.useSSL) .Values.s3.host (.Values.s3.port | int) | quote }}
+            {{- end }}
+
+            # TODO: decide whether we should support something else
+            - name: STORAGE_BACKEND
+              value: "s3"
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.s3.accessKey.secretname | default "s3-storage" }}
+                  key: {{ .Values.s3.accessKey.keyname | default "username" }}
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.s3.secretKey.secretname | default "s3-storage" }}
+                  key: {{ .Values.s3.secretKey.keyname | default "password" }}
+
           envFrom:
             - configMapRef:
                 name: {{ include "supabase.storage.defaultConfigmapName" . }}
@@ -175,8 +244,6 @@ spec:
             {{- end }}
           {{- if .Values.storage.resources }}
           resources: {{- toYaml .Values.storage.resources | nindent 12 }}
-          {{- else if ne .Values.storage.resourcesPreset "none" }}
-          resources: {{- include "common.resources.preset" (dict "type" .Values.storage.resourcesPreset) | nindent 12 }}
           {{- end }}
           ports:
             - name: http

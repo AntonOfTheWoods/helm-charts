@@ -1,4 +1,4 @@
-{{- if and .Values.imgproxy.persistence.enabled (not .Values.imgproxy.persistence.existingClaim) -}}
+{{- if and .Values.imgproxy.enabled .Values.imgproxy.persistence.enabled (not .Values.imgproxy.persistence.existingClaim) -}}
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:

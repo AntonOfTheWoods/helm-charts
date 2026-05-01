@@ -67,7 +67,7 @@ spec:
       initContainers:
         # FIXME: this should be analyticsdb!!!
         {{- if not .Values.analytics.diagnosticMode.enabled }}
-        {{- include "supabase.waitForDBInitContainer" . | nindent 8 }}
+        {{- include "supabase.analyticsdb.database.checkdbready" . | nindent 8 }}
         {{- end }}
 
         {{- if .Values.analytics.initContainers }}
@@ -103,6 +103,12 @@ spec:
             - name: LOGFLARE_LOG_LEVEL
               value: {{ .Values.analytics.logLevel | default "warn" | quote }}
 
+            - name: LOGFLARE_MIN_CLUSTER_SIZE
+              value: "1"
+
+            # LOGFLARE_PUBLIC_ACCESS_TOKEN: ${LOGFLARE_PUBLIC_ACCESS_TOKEN}
+            # LOGFLARE_PRIVATE_ACCESS_TOKEN: ${LOGFLARE_PRIVATE_ACCESS_TOKEN}
+
             - name: DB_USER
               value: {{ include "supabase.analyticsdb.database.user" . | quote }}
             - name: DB_HOST
@@ -119,7 +125,7 @@ spec:
 
             # THESE ARE REQUIRED IN ADDITION TO POSTGRES_BACKEND_URL below!!!
             - name: DB_SCHEMA
-              value: {{ .Values.analytics.application.dbSchema | default "public" | quote }}
+              value: {{ .Values.analytics.application.dbSchema | default "_analytics" | quote }}
             - name: DB_DATABASE
               value: $(DB_NAME)
             - name: DB_HOSTNAME
@@ -134,6 +140,21 @@ spec:
                 secretKeyRef:
                   name: {{ include "supabase.analytics.secretName" . }}
                   key: {{ include "supabase.analytics.apiSecretKey" . }}
+
+            - name: LOGFLARE_PUBLIC_ACCESS_TOKEN
+              # value: your-super-secret-and-long-logflare-key-public
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.analytics.secretName" . }}
+                  key: {{ include "supabase.analytics.apiSecretKey" . }}
+
+            - name: LOGFLARE_PRIVATE_ACCESS_TOKEN
+              # value: your-super-secret-and-long-logflare-key-private
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.analytics.secretName" . }}
+                  key: {{ include "supabase.analytics.apiPrivateSecretKey" . }}
+
 
             {{- if .Values.analytics.bigQuery.enabled }}
             - name: GOOGLE_PROJECT_ID
@@ -167,8 +188,6 @@ spec:
             {{- end }}
           {{- if .Values.analytics.resources }}
           resources: {{- toYaml .Values.analytics.resources | nindent 12 }}
-          {{- else if ne .Values.analytics.resourcesPreset "none" }}
-          resources: {{- include "common.resources.preset" (dict "type" .Values.analytics.resourcesPreset) | nindent 12 }}
           {{- end }}
           ports:
             - name: http-analytics

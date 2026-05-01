@@ -1,0 +1,145 @@
+{{- if .Values.gateway.enabled }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ include "common.names.fullname" . }}-api
+  namespace: {{ include "common.names.namespace" . }}
+  labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" . ) | nindent 4 }}
+    app.kubernetes.io/part-of: supabase
+    app.kubernetes.io/component: ingress
+spec:
+  parentRefs:
+    - kind: ListenerSet
+      name: {{ .Values.gateway.listenerset.name | default (printf "%s-gateway" (include "common.names.fullname" .)) }}
+
+  hostnames:
+    {{- include "supabase.gateway.validatedHosts" . | nindent 4 }}
+    - {{ include "supabase.api.baseHost" . | quote }}
+  rules:
+    {{- $functionRouteMethods := list "GET" "POST" "PUT" "PATCH" "DELETE" }}
+    {{- $functionSplits := list }}
+    {{- with .Values.functions.routing }}
+    {{- $functionSplits = (.splits | default (list)) }}
+    {{- end }}
+    # functions splits - config-driven routes for selected function paths
+    {{- range $split := $functionSplits }}
+    {{- $paths := ($split.paths | default (list)) }}
+    {{- if and (gt (len $paths) 0) $split.backend.serviceName $split.backend.port }}
+    {{- range $m := $functionRouteMethods }}
+    - matches:
+        {{- range $p := $paths }}
+        - path: { type: {{ ($p.type | default "Exact") }}, value: {{ $p.value }} }
+          method: {{ $m }}
+        {{- end }}
+      filters:
+        {{- if $split.rewritePath }}
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: {{ $split.rewritePath }}
+        {{- end }}
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            set:
+              - name: Access-Control-Allow-Origin
+                value: "*"
+              - name: Vary
+                value: "Origin"
+      backendRefs:
+        - name: {{ $split.backend.serviceName }}
+          {{- if $split.backend.namespace }}
+          namespace: {{ $split.backend.namespace }}
+          {{- end }}
+          port: {{ $split.backend.port }}
+    {{- end }}
+    {{- end }}
+    {{- end }}
+
+    # functions (strip /functions/v1/) - one rule per method (exclude OPTIONS)
+    {{- range $m := $functionRouteMethods }}
+    - matches:
+        - path: { type: PathPrefix, value: /functions/v1/ }
+          method: {{ $m }}
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            set:
+              - name: Access-Control-Allow-Origin
+                value: "*"
+              - name: Vary
+                value: "Origin"
+      backendRefs:
+        - name: {{ include "supabase.functions.fullname" $ }}
+          port: {{ $.Values.functions.service.ports.http }}
+    {{- end }}
+
+
+    # auth wildcard (strip /auth/v1/)
+    {{- range $m := list "GET" "POST" "PUT" "PATCH" "DELETE" }}
+    - matches:
+        - path: { type: PathPrefix, value: /auth/v1/ }
+          method: {{ $m }}
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            set:
+              - name: Access-Control-Allow-Origin
+                value: "*"
+              - name: Vary
+                value: "Origin"
+      backendRefs:
+        - name: {{ include "supabase.auth.fullname" $ }}
+          port: {{ $.Values.auth.service.ports.http }}
+    {{- end }}
+
+
+    # realtime (rewrite to /socket)
+    {{- range $m := list "GET" "POST" }}
+    - matches:
+        - path: { type: PathPrefix, value: /realtime/v1/ }
+          method: {{ $m }}
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: /socket
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            set:
+              - name: Access-Control-Allow-Origin
+                value: "*"
+              - name: Vary
+                value: "Origin"
+      backendRefs:
+        - name: {{ include "supabase.realtime.fullname" $ }}
+          port: {{ $.Values.realtime.service.ports.http }}
+    {{- end }}
+
+
+    # pg-meta (strip /pg/)
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /pg/
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+      backendRefs:
+        - name: {{ include "supabase.meta.fullname" . }}
+          port: {{ .Values.meta.service.ports.http }}
+{{- end }}

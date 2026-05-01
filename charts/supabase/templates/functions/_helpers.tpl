@@ -2,6 +2,10 @@
 {{ include "common.images.image" (dict "imageRoot" .Values.functions.image "global" .Values.global) }}
 {{- end -}}
 
+{{- define "supabase.functions.imageVolume" -}}
+{{ include "common.images.image" (dict "imageRoot" .Values.functions.imageVolume.image "global" .Values.global) }}
+{{- end -}}
+
 {{/*
 Return the proper Supabase functions fullname
 */}}

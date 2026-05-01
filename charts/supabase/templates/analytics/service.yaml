@@ -6,6 +6,9 @@ metadata:
   labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ ) | nindent 4 }}
     app.kubernetes.io/part-of: supabase
     app.kubernetes.io/component: analytics
+    {{- if and .Values.istio.enabled (dig "ambient" "enabled" false .Values.istio) }}
+    istio.io/use-waypoint: {{ printf "%s-waypoint" (include "common.names.fullname" .) | quote }}
+    {{- end }}
   {{- if or .Values.analytics.service.annotations .Values.commonAnnotations }}
   {{- $annotations := include "common.tplvalues.merge" ( dict "values" ( list .Values.analytics.service.annotations .Values.commonAnnotations ) "context" . ) }}
   annotations: {{- include "common.tplvalues.render" ( dict "value" $annotations "context" $) | nindent 4 }}

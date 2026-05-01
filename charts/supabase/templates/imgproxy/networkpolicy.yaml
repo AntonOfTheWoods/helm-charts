@@ -58,6 +58,13 @@ spec:
     - ports:
         - port: {{ .Values.imgproxy.containerPorts.http }}
         - port: {{ .Values.imgproxy.service.ports.http }}
+        {{- if and .Values.istio.enabled (dig "ambient" "enabled" false .Values.istio) }}
+        # Istio Ambient ports
+        - port: 15008
+          protocol: TCP
+        - port: 15021
+          protocol: TCP
+        {{- end }}
       {{- if not .Values.imgproxy.networkPolicy.allowExternal }}
       from:
         - podSelector:

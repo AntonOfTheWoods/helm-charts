@@ -1,0 +1,158 @@
+{{- /*
+Waypoint-level AuthorizationPolicies enforcing Supabase API key model (mandatory when gateway.enabled).
+Strategy:
+1. Public (no key) access: /auth/v1/verify, /auth/v1/callback, /auth/v1/authorize
+2. Anon OR Service key required: /auth/v1/*, /rest/v1/*, /realtime/v1/*, /storage/v1/*, /functions/v1/*
+3. Service key ONLY: /pg/*
+Implicit deny for everything else.
+
+Key sourcing precedence:
+  a. Explicit values.jwt.{anonKey,serviceKey}
+  b. Data in Secret (lookup) named global.jwt.existingSecret (same namespace) with keys defined by
+     global.jwt.existingSecretAnonKey / global.jwt.existingSecretServiceKey (defaults already in values.yaml)
+
+If a key is still empty after lookup its rule will render without values so it never matches (fail-closed).
+*/ -}}
+
+{{- if .Values.istio.enabled }}
+
+{{- /* Determine parent Gateway reference: either the one we create or an existing shared one */ -}}
+{{- $autoGwName := printf "%s-gateway" (include "common.names.fullname" .) -}}
+{{- $createdGwName := .Values.gateway.name | default $autoGwName -}}
+{{- $parentGwName := ternary $createdGwName (.Values.gateway.existing.name) ( .Values.gateway.create ) -}}
+{{- $parentGwNamespace := (ternary (.Values.gateway.namespace | default (include "supabase.gateway.ingress.namespace" .)) (.Values.gateway.existing.namespace) (.Values.gateway.create)) -}}
+{{- if and (not .Values.gateway.create) (or (empty .Values.gateway.existing.name) (empty .Values.gateway.existing.namespace)) }}
+{{- fail "gateway.create is false; you must set gateway.existing.name and gateway.existing.namespace" }}
+{{- end }}
+{{- $ctx := . }}
+{{- $anonKey := include "supabase.jwt.resolvedAnonKey" . -}}
+{{- $serviceKey := include "supabase.jwt.resolvedServiceKey" . -}}
+
+{{- /* TODO: fixme? We need these two for the case for first deploy - actually it MUST be deployed twice to
+  get the actual values */ -}}
+{{- $haveAnon := gt (len (trim $anonKey)) 0 -}}
+{{- $haveService := gt (len (trim $serviceKey)) 0 -}}
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: {{ include "common.names.fullname" . }}-preflight
+  namespace: {{ $parentGwNamespace }}
+  labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ctx ) | nindent 4 }}
+    app.kubernetes.io/part-of: supabase
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: {{ $parentGwName }}
+  action: ALLOW
+  rules:
+    - to:
+        - operation:
+            methods: ["OPTIONS"]
+            hosts:
+              {{- include "supabase.gateway.validatedHosts" . | nindent 14 }}
+              - {{ include "supabase.api.baseHost" . | quote }}
+            paths:
+              - "/auth/v1/*"
+              - "/rest/v1/*"
+              - "/realtime/v1/*"
+              - "/storage/v1/*"
+              - "/pg/*"
+              - "/functions/v1/*"
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: {{ include "common.names.fullname" . }}-open
+  namespace: {{ $parentGwNamespace }}
+  labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ctx ) | nindent 4 }}
+    app.kubernetes.io/part-of: supabase
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: {{ $parentGwName }}
+  action: ALLOW
+  # Applies to all workloads in namespace (waypoint enforces) for specific open paths
+  rules:
+    - to:
+        - operation:
+            hosts:
+              {{- include "supabase.gateway.validatedHosts" . | nindent 14 }}
+              - {{ include "supabase.api.baseHost" . | quote }}
+            paths:
+              - "/auth/v1/verify"
+              - "/auth/v1/callback"
+              - "/auth/v1/authorize"
+              - "/functions/v1/*"
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: {{ include "common.names.fullname" . }}-anon-or-service
+  namespace: {{ $parentGwNamespace }}
+  labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ctx ) | nindent 4 }}
+    app.kubernetes.io/part-of: supabase
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: {{ $parentGwName }}
+
+  action: ALLOW
+  rules:
+    - when:
+        - key: request.headers[apikey]
+          {{- if and $haveAnon $haveService }}
+          values:
+            - {{ $anonKey | quote }}
+            - {{ $serviceKey | quote }}
+          {{- else if $haveAnon }}
+          values:
+            - {{ $anonKey | quote }}
+          {{- else if $haveService }}
+          values:
+            - {{ $serviceKey | quote }}
+          {{- end }}
+      to:
+        - operation:
+            hosts:
+              {{- include "supabase.gateway.validatedHosts" . | nindent 14 }}
+              - {{ include "supabase.api.baseHost" . | quote }}
+            paths:
+              - "/auth/v1/*"
+              - "/rest/v1/*"
+              - "/realtime/v1/*"
+              - "/storage/v1/*"
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: {{ include "common.names.fullname" . }}-service-only
+  namespace: {{ $parentGwNamespace }}
+  labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ctx ) | nindent 4 }}
+    app.kubernetes.io/part-of: supabase
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: {{ $parentGwName }}
+
+  action: ALLOW
+  rules:
+    - when:
+        - key: request.headers[apikey]
+          {{- if $haveService }}
+          values:
+            - {{ $serviceKey | quote }}
+          {{- else }}
+          # No service key provided; no values means rule will never match (implicit lock-down).
+          {{- end }}
+      to:
+        - operation:
+            hosts:
+              {{- include "supabase.gateway.validatedHosts" . | nindent 14 }}
+              - {{ include "supabase.api.baseHost" . | quote }}
+            paths:
+              - "/pg/*"
+{{- end }}
