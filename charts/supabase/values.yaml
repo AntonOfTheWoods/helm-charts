@@ -1157,7 +1157,7 @@ functions:
     ingressNSMatchLabels: {}
     ingressNSPodMatchLabels: {}
   persistence:
-    enabled: true
+    enabled: false
     mountPath: /supabase/supabase-functions
     subPath: ""
     storageClass: ""
