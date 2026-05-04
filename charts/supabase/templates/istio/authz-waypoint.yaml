@@ -35,7 +35,7 @@ If a key is still empty after lookup its rule will render without values so it n
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
-  name: {{ include "common.names.fullname" . }}-preflight
+  name: {{ printf "%s-%s-preflight" (include "common.names.namespace" .) (include "common.names.fullname" .) }}
   namespace: {{ $parentGwNamespace }}
   labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ctx ) | nindent 4 }}
     app.kubernetes.io/part-of: supabase
@@ -63,7 +63,7 @@ spec:
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
-  name: {{ include "common.names.fullname" . }}-open
+  name: {{ printf "%s-%s-open" (include "common.names.namespace" .) (include "common.names.fullname" .) }}
   namespace: {{ $parentGwNamespace }}
   labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ctx ) | nindent 4 }}
     app.kubernetes.io/part-of: supabase
@@ -89,7 +89,7 @@ spec:
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
-  name: {{ include "common.names.fullname" . }}-anon-or-service
+  name: {{ printf "%s-%s-anon-or-service" (include "common.names.namespace" .) (include "common.names.fullname" .) }}
   namespace: {{ $parentGwNamespace }}
   labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ctx ) | nindent 4 }}
     app.kubernetes.io/part-of: supabase
@@ -128,7 +128,7 @@ spec:
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
-  name: {{ include "common.names.fullname" . }}-service-only
+  name: {{ printf "%s-%s-service-only" (include "common.names.namespace" .) (include "common.names.fullname" .) }}
   namespace: {{ $parentGwNamespace }}
   labels: {{- include "common.labels.standard" ( dict "customLabels" .Values.commonLabels "context" $ctx ) | nindent 4 }}
     app.kubernetes.io/part-of: supabase

@@ -120,6 +120,12 @@ spec:
                   name: {{ include "supabase.jwt.secretName" . }}
                   key: {{ include "supabase.jwt.secretKey" . }}
 
+            - name: PGRST_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.jwt.secretName" . }}
+                  key: {{ include "supabase.jwt.jwtJwks" . }}
+
             - name: PGRST_APP_SETTINGS_JWT_SECRET
               valueFrom:
                 secretKeyRef:

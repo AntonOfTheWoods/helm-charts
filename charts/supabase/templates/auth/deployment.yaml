@@ -117,6 +117,13 @@ spec:
                 secretKeyRef:
                   name: {{ include "supabase.jwt.secretName" . }}
                   key: {{ include "supabase.jwt.secretKey" . }}
+
+            - name: GOTRUE_JWT_KEYS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.jwt.secretName" . }}
+                  key: {{ include "supabase.jwt.jwtKeys" . }}
+
             - name: GOTRUE_OPERATOR_TOKEN
               valueFrom:
                 secretKeyRef:

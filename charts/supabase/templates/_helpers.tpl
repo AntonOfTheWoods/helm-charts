@@ -356,7 +356,7 @@ JWT credential secret name. Using Release.Name as it is used in subcharts as wel
 {{- end -}}
 
 {{/*
-JWT credential anon secret key
+JWT credential admin secret key
 */}}
 {{- define "supabase.jwt.secretKey" -}}
 {{- if .Values.global.jwt.existingSecret -}}
@@ -414,6 +414,39 @@ JWT credential service secret key
     {{- print .Values.global.jwt.existingSecretServiceKey -}}
 {{- else -}}
     {{- print "service-key" -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Supabase anon service key secret key v2
+*/}}
+{{- define "supabase.jwt.serviceSecretKeyV2" -}}
+{{- if .Values.global.jwt.existingSecret -}}
+    {{- print .Values.global.jwt.existingSecretServiceKeyV2 -}}
+{{- else -}}
+    {{- print "secret-key" -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Supabase jwt keys secret key
+*/}}
+{{- define "supabase.jwt.jwtKeys" -}}
+{{- if .Values.global.jwt.existingSecret -}}
+    {{- print .Values.global.jwt.existingJwtKeys -}}
+{{- else -}}
+    {{- print "jwt-keys" -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Supabase jwt jwks secret key
+*/}}
+{{- define "supabase.jwt.jwtJwks" -}}
+{{- if .Values.global.jwt.existingSecret -}}
+    {{- print .Values.global.jwt.existingJwtJwks -}}
+{{- else -}}
+    {{- print "jwt-jwks" -}}
 {{- end -}}
 {{- end -}}
 

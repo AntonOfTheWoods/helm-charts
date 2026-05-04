@@ -159,6 +159,12 @@ spec:
                 secretKeyRef:
                   name: {{ include "supabase.jwt.secretName" . }}
                   key: {{ include "supabase.jwt.serviceSecretKey" . }}
+            - name: JWT_JWKS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.jwt.secretName" . }}
+                  key: {{ include "supabase.jwt.jwtJwks" . }}
+
             {{- if .Values.storage.extraEnvVars }}
             {{- include "common.tplvalues.render" (dict "value" .Values.storage.extraEnvVars "context" $) | nindent 12 }}
             {{- end }}

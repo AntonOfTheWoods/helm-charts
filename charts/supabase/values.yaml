@@ -35,6 +35,19 @@ global:
     ##
     existingSecretExpiry: "expiry"
 
+    ## @param global.jwt.existingPublishableKey The key in the existing secret containing the JWT publishable key
+    ##
+    existingPublishableKey: "publishable-key"
+    ## @param global.jwt.existingSecretServiceKeyV2 The key in the existing secret containing the JWT secret key
+    ##
+    existingSecretServiceKeyV2: "secret-key"
+    ## @param global.jwt.existingJwtKeys The key in the existing secret containing the JWT keys (the one used by the auth service, should contain both the private and public keys)
+    ##
+    existingJwtKeys: "jwt-keys"
+    ## @param global.jwt.existingJwtJwks The key in the existing secret containing the JWT JWKS
+    ##
+    existingJwtJwks: "jwt-jwks"
+
   ## Compatibility adaptations for Kubernetes platforms
   ##
   compatibility:

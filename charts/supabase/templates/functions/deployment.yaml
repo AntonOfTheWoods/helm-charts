@@ -151,6 +151,21 @@ spec:
                   name: {{ include "supabase.jwt.secretName" . }}
                   key: {{ include "supabase.jwt.secretKey" . }}
 
+            # # New opaque API keys
+            # SUPABASE_PUBLISHABLE_KEYS: "{\"default\":\"${SUPABASE_PUBLISHABLE_KEY:-}\"}"
+            # SUPABASE_SECRET_KEYS: "{\"default\":\"${SUPABASE_SECRET_KEY:-}\"}"
+            - name: SUPABASE_PUBLISHABLE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.jwt.secretName" . }}
+                  key: {{ include "supabase.jwt.publishableKey" . }}
+            - name: SUPABASE_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.jwt.secretName" . }}
+                  key: {{ include "supabase.jwt.secretKey" . }}
+
+
             - name: SUPABASE_INTERNAL_DEBUG
               value: {{ default "false" .Values.functions.debug | quote }}
 
