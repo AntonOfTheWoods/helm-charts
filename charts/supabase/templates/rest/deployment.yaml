@@ -114,17 +114,19 @@ spec:
 
             - name: PGRST_DB_URI
               value: "postgresql://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=$(DB_SSL)"
+
             - name: PGRST_JWT_SECRET
               valueFrom:
                 secretKeyRef:
                   name: {{ include "supabase.jwt.secretName" . }}
                   key: {{ include "supabase.jwt.secretKey" . }}
 
-            - name: PGRST_JWT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "supabase.jwt.secretName" . }}
-                  key: {{ include "supabase.jwt.jwtJwks" . }}
+            # FIXME: replace the previous with the following!!!
+            # - name: PGRST_JWT_SECRET
+            #   valueFrom:
+            #     secretKeyRef:
+            #       name: {{ include "supabase.jwt.secretName" . }}
+            #       key: {{ include "supabase.jwt.jwtJwks" . }}
 
             - name: PGRST_APP_SETTINGS_JWT_SECRET
               valueFrom:

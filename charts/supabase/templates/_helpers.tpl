@@ -418,7 +418,18 @@ JWT credential service secret key
 {{- end -}}
 
 {{/*
-Supabase anon service key secret key v2
+Supabase publishable key secret key
+*/}}
+{{- define "supabase.jwt.publishableKey" -}}
+{{- if .Values.global.jwt.existingSecret -}}
+    {{- print .Values.global.jwt.existingPublishableKey -}}
+{{- else -}}
+    {{- print "publishable-key" -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Supabase service key secret key v2
 */}}
 {{- define "supabase.jwt.serviceSecretKeyV2" -}}
 {{- if .Values.global.jwt.existingSecret -}}

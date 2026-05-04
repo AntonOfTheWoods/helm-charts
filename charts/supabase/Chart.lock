@@ -1,6 +1,9 @@
 dependencies:
 - name: vector
   repository: oci://ghcr.io/vectordotdev/helm-charts
-  version: 0.51.0
-digest: sha256:15d321b9b60744c54a878cdee592b4ff5c0bbed35a1ef7a66479bddd10d39b4a
-generated: "2026-03-16T14:51:35.507818035+08:00"
+  version: 0.52.0
+- name: common
+  repository: file://../../../../common/cluster-services/charts/common
+  version: 2.36.0
+digest: sha256:b393fe1119ada6f1ab255751ec4c6c5d463027aad4ee153319ded39ae0ed2914
+generated: "2026-05-04T23:23:01.58518143+08:00"
