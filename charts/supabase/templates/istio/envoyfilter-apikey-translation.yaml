@@ -1,0 +1,257 @@
+{{- if and .Values.istio.enabled (.Values.istio.apiKeyTranslation.enabled | default true) }}
+{{- $ctx := . -}}
+{{- $ns := include "common.names.namespace" . -}}
+{{- $sec := lookup "v1" "Secret" $ns (include "supabase.jwt.secretName" .) -}}
+{{- $anonJwt := include "supabase.jwt.resolvedAnonKey" . -}}
+{{- $serviceJwt := include "supabase.jwt.resolvedServiceKey" . -}}
+{{- $publishableKey := "" -}}
+{{- $secretKeyV2 := "" -}}
+{{- if $sec -}}
+  {{- $publishableRaw := index $sec.data (include "supabase.jwt.publishableKey" .) | default "" -}}
+  {{- if $publishableRaw }}{{- $publishableKey = $publishableRaw | b64dec -}}{{- end -}}
+  {{- $secretV2Raw := index $sec.data (include "supabase.jwt.serviceSecretKeyV2" .) | default "" -}}
+  {{- if $secretV2Raw }}{{- $secretKeyV2 = $secretV2Raw | b64dec -}}{{- end -}}
+{{- end -}}
+{{- $autoGwName := printf "%s-gateway" (include "common.names.fullname" .) -}}
+{{- $createdGwName := .Values.gateway.name | default $autoGwName -}}
+{{- $parentGwName := ternary $createdGwName (.Values.gateway.existing.name) (.Values.gateway.create) -}}
+{{- $parentGwNamespace := ternary (.Values.gateway.namespace | default (include "supabase.gateway.ingress.namespace" .)) (.Values.gateway.existing.namespace) (.Values.gateway.create) -}}
+{{- if and (not .Values.gateway.create) (or (empty .Values.gateway.existing.name) (empty .Values.gateway.existing.namespace)) }}
+{{- fail "gateway.create is false; you must set gateway.existing.name and gateway.existing.namespace" }}
+{{- end }}
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: {{ printf "%s-%s-preflight" (include "common.names.namespace" .) (include "common.names.fullname" .) }}-apikey-translation
+  namespace: {{ $parentGwNamespace }}
+  labels: {{- include "common.labels.standard" (dict "customLabels" .Values.commonLabels "context" $ctx) | nindent 4 }}
+    app.kubernetes.io/part-of: supabase
+spec:
+  workloadSelector:
+    labels:
+      gateway.networking.k8s.io/gateway-name: {{ $parentGwName | quote }}
+  configPatches:
+    - applyTo: HTTP_FILTER
+      match:
+        context: GATEWAY
+        listener:
+          filterChain:
+            filter:
+              name: envoy.filters.network.http_connection_manager
+              subFilter:
+                name: envoy.filters.http.rbac
+      patch:
+        operation: INSERT_BEFORE
+        value:
+          name: envoy.filters.http.lua
+          typed_config:
+            "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
+            defaultSourceCode:
+              inlineString: |
+                local OPAQUE_PUBLISHABLE_KEY = {{ $publishableKey | quote }}
+                local OPAQUE_SECRET_KEY = {{ $secretKeyV2 | quote }}
+                local ANON_JWT = {{ $anonJwt | quote }}
+                local SERVICE_ROLE_JWT = {{ $serviceJwt | quote }}
+                local TRANSLATION_ENABLED = OPAQUE_PUBLISHABLE_KEY ~= "" and OPAQUE_SECRET_KEY ~= "" and ANON_JWT ~= "" and SERVICE_ROLE_JWT ~= ""
+
+                local FUNCTIONS_PREFIX = "/functions/v1/"
+                local AUTH_PREFIX = "/auth/v1/"
+                local REST_PREFIX = "/rest/v1/"
+                local REALTIME_PREFIX = "/realtime/v1/"
+                local REALTIME_API_PREFIX = "/realtime/v1/api"
+                local STORAGE_PREFIX = "/storage/v1/"
+                local PG_PREFIX = "/pg/"
+
+                local function starts_with(value, prefix)
+                  return value ~= nil and string.sub(value, 1, string.len(prefix)) == prefix
+                end
+
+                local function parse_host(authority)
+                  if authority == nil then
+                    return nil
+                  end
+
+                  local host = string.lower(authority)
+                  local bracketStart = string.find(host, "[", 1, true)
+                  local bracketEnd = string.find(host, "]", 1, true)
+                  if bracketStart == 1 and bracketEnd ~= nil then
+                    return string.sub(host, 2, bracketEnd - 1)
+                  end
+
+                  local colonPos = string.find(host, ":", 1, true)
+                  if colonPos ~= nil then
+                    return string.sub(host, 1, colonPos - 1)
+                  end
+
+                  return host
+                end
+
+                local ALLOWED_HOSTS = {
+                {{- range $h := .Values.gateway.hosts }}
+                  [{{ lower $h.name | quote }}] = true,
+                {{- end }}
+                {{- range $h := .Values.gateway.extraHosts }}
+                  [{{ lower $h.name | quote }}] = true,
+                {{- end }}
+                  [{{ include "supabase.api.baseHost" . | lower | quote }}] = true,
+                }
+
+                local function is_allowed_host(headers)
+                  local authority = headers:get(":authority")
+                  if authority == nil or authority == "" then
+                    authority = headers:get("host")
+                  end
+
+                  local host = parse_host(authority)
+                  if host == nil or host == "" then
+                    return false
+                  end
+
+                  return ALLOWED_HOSTS[host] == true
+                end
+
+                local function extract_query_apikey(path)
+                  if path == nil then
+                    return nil
+                  end
+
+                  local queryStart = string.find(path, "?", 1, true)
+                  if queryStart == nil then
+                    return nil
+                  end
+
+                  local query = string.sub(path, queryStart + 1)
+                  for key, value in string.gmatch(query, "([^&=?]+)=([^&]*)") do
+                    if key == "apikey" and value ~= "" then
+                      return value
+                    end
+                  end
+
+                  return nil
+                end
+
+                local function bearer_token(authHeader)
+                  if authHeader == nil or authHeader == "" then
+                    return nil
+                  end
+
+                  if string.sub(authHeader, 1, 7) ~= "Bearer " then
+                    return nil
+                  end
+
+                  local token = string.sub(authHeader, 8)
+                  if token == "" then
+                    return nil
+                  end
+
+                  return token
+                end
+
+                local function is_passthrough_authorization(authHeader)
+                  if authHeader == nil or authHeader == "" then
+                    return false
+                  end
+
+                  return string.sub(authHeader, 1, 10) ~= "Bearer sb_"
+                end
+
+                local function translate_apikey(apikey)
+                  if not TRANSLATION_ENABLED then
+                    return nil
+                  end
+
+                  if apikey == nil or apikey == "" then
+                    return nil
+                  end
+
+                  if apikey == OPAQUE_SECRET_KEY then
+                    return SERVICE_ROLE_JWT
+                  end
+
+                  if apikey == OPAQUE_PUBLISHABLE_KEY then
+                    return ANON_JWT
+                  end
+
+                  return nil
+                end
+
+                local function is_functions_path(path)
+                  return starts_with(path, FUNCTIONS_PREFIX)
+                end
+
+                local function is_managed_api_path(path)
+                  return starts_with(path, AUTH_PREFIX)
+                    or starts_with(path, REST_PREFIX)
+                    or starts_with(path, REALTIME_PREFIX)
+                    or starts_with(path, STORAGE_PREFIX)
+                    or starts_with(path, PG_PREFIX)
+                end
+
+                local function is_realtime_ws_path(path)
+                  return starts_with(path, REALTIME_PREFIX) and not starts_with(path, REALTIME_API_PREFIX)
+                end
+
+                local function format_authorization(value)
+                  if value == nil or value == "" then
+                    return nil
+                  end
+
+                  if starts_with(value, "Bearer ") then
+                    return value
+                  end
+
+                  return "Bearer " .. value
+                end
+
+                function envoy_on_request(request_handle)
+                  local headers = request_handle:headers()
+                  if not is_allowed_host(headers) then
+                    return
+                  end
+
+                  local path = headers:get(":path") or ""
+                  if not is_managed_api_path(path) then
+                    return
+                  end
+
+                  if is_functions_path(path) then
+                    return
+                  end
+
+                  local authHeader = headers:get("authorization")
+                  local apikey = headers:get("apikey")
+
+                  if apikey == nil or apikey == "" then
+                    apikey = extract_query_apikey(path)
+                  end
+
+                  if apikey == nil or apikey == "" then
+                    apikey = bearer_token(authHeader)
+                  end
+
+                  local translated = translate_apikey(apikey)
+                  if translated ~= nil and translated ~= "" then
+                    apikey = translated
+                  end
+
+                  if apikey ~= nil and apikey ~= "" then
+                    headers:replace("apikey", apikey)
+                  end
+
+                  if is_realtime_ws_path(path) then
+                    if apikey ~= nil and apikey ~= "" then
+                      headers:replace("x-api-key", apikey)
+                    end
+                    return
+                  end
+
+                  if is_passthrough_authorization(authHeader) then
+                    return
+                  end
+
+                  local authValue = format_authorization(apikey)
+                  if authValue ~= nil then
+                    headers:replace("authorization", authValue)
+                  end
+                end
+{{- end }}

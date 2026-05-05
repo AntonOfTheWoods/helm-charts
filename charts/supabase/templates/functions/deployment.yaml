@@ -165,6 +165,16 @@ spec:
                   name: {{ include "supabase.jwt.secretName" . }}
                   key: {{ include "supabase.jwt.secretKey" . }}
 
+            - name: SUPABASE_JWT_JWKS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.jwt.secretName" . }}
+                  key: {{ include "supabase.jwt.jwtJwks" . }}
+            - name: SUPABASE_JWT_KEYS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "supabase.jwt.secretName" . }}
+                  key: {{ include "supabase.jwt.jwtKeys" . }}
 
             - name: SUPABASE_INTERNAL_DEBUG
               value: {{ default "false" .Values.functions.debug | quote }}

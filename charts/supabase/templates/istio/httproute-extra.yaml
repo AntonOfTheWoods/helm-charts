@@ -16,20 +16,34 @@ spec:
     - kind: ListenerSet
       name: {{ .Values.gateway.listenerset.name | default (printf "%s-gateway" (include "common.names.fullname" .)) }}
 
-  # parentRefs:
-  #   - group: gateway.networking.k8s.io
-  #     kind: Gateway
-  #     name: {{ $parentGwName }}
-  #     namespace: {{ $parentGwNamespace }}
   hostnames:
     {{- include "supabase.gateway.validatedHosts" . | nindent 4 }}
     - {{ include "supabase.api.baseHost" . | quote }}
   rules:
-    # auth fixed endpoints (/verify)
-    {{- range $m := list "GET" "POST" }}
+    # OAuth 2.0 Authorization Server Metadata (RFC 8414)
     - matches:
+        {{- range $m := list "GET" }}
+        - path: { type: Exact, value: /.well-known/oauth-authorization-server }
+          method: {{ $m }}
+        {{- end }}
+      filters:
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            set:
+              - name: Access-Control-Allow-Origin
+                value: "*"
+              - name: Vary
+                value: "Origin"
+      backendRefs:
+        - name: {{ include "supabase.auth.fullname" $ }}
+          port: {{ $.Values.auth.service.ports.http }}
+
+    # auth fixed endpoints (/verify)
+    - matches:
+        {{- range $m := list "GET" "POST" }}
         - path: { type: PathPrefix, value: /auth/v1/verify }
           method: {{ $m }}
+        {{- end }}
       filters:
         - type: URLRewrite
           urlRewrite:
@@ -46,13 +60,13 @@ spec:
       backendRefs:
         - name: {{ include "supabase.auth.fullname" $ }}
           port: {{ $.Values.auth.service.ports.http }}
-    {{- end }}
 
     # auth fixed endpoints (/callback)
-    {{- range $m := list "GET" "POST" }}
     - matches:
+        {{- range $m := list "GET" "POST" }}
         - path: { type: PathPrefix, value: /auth/v1/callback }
           method: {{ $m }}
+        {{- end }}
       filters:
         - type: URLRewrite
           urlRewrite:
@@ -69,13 +83,13 @@ spec:
       backendRefs:
         - name: {{ include "supabase.auth.fullname" $ }}
           port: {{ $.Values.auth.service.ports.http }}
-    {{- end }}
 
     # auth fixed endpoints (/authorize)
-    {{- range $m := list "GET" "POST" }}
     - matches:
+        {{- range $m := list "GET" "POST" }}
         - path: { type: PathPrefix, value: /auth/v1/authorize }
           method: {{ $m }}
+        {{- end }}
       filters:
         - type: URLRewrite
           urlRewrite:
@@ -92,22 +106,16 @@ spec:
       backendRefs:
         - name: {{ include "supabase.auth.fullname" $ }}
           port: {{ $.Values.auth.service.ports.http }}
-    {{- end }}
 
-    # rest (strip /rest/v1/, remove headers)
-    {{- range $m := list "GET" "POST" "PUT" "PATCH" "DELETE" }}
+    # rest (strip /rest/v1/)
     - matches:
         - path: { type: PathPrefix, value: /rest/v1/ }
-          method: {{ $m }}
       filters:
         - type: URLRewrite
           urlRewrite:
             path:
               type: ReplacePrefixMatch
               replacePrefixMatch: /
-        - type: RequestHeaderModifier
-          requestHeaderModifier:
-            remove: ["apikey", "authorization"]
         - type: ResponseHeaderModifier
           responseHeaderModifier:
             set:
@@ -118,13 +126,10 @@ spec:
       backendRefs:
         - name: {{ include "supabase.rest.fullname" $ }}
           port: {{ $.Values.rest.service.ports.http }}
-    {{- end }}
 
     # storage (strip /storage/v1/, add Forwarded header)
-    {{- range $m := list "GET" "POST" "PUT" "PATCH" "DELETE" }}
     - matches:
         - path: { type: PathPrefix, value: /storage/v1/ }
-          method: {{ $m }}
       filters:
         - type: URLRewrite
           urlRewrite:
@@ -146,5 +151,4 @@ spec:
       backendRefs:
         - name: {{ include "supabase.storage.fullname" $ }}
           port: {{ $.Values.storage.service.ports.http }}
-    {{- end }}
 {{- end }}

@@ -25,11 +25,12 @@ spec:
     {{- range $split := $functionSplits }}
     {{- $paths := ($split.paths | default (list)) }}
     {{- if and (gt (len $paths) 0) $split.backend.serviceName $split.backend.port }}
-    {{- range $m := $functionRouteMethods }}
     - matches:
+        {{- range $m := $functionRouteMethods }}
         {{- range $p := $paths }}
         - path: { type: {{ ($p.type | default "Exact") }}, value: {{ $p.value }} }
           method: {{ $m }}
+        {{- end }}
         {{- end }}
       filters:
         {{- if $split.rewritePath }}
@@ -54,13 +55,10 @@ spec:
           port: {{ $split.backend.port }}
     {{- end }}
     {{- end }}
-    {{- end }}
 
-    # functions (strip /functions/v1/) - one rule per method (exclude OPTIONS)
-    {{- range $m := $functionRouteMethods }}
+    # functions (strip /functions/v1/)
     - matches:
         - path: { type: PathPrefix, value: /functions/v1/ }
-          method: {{ $m }}
       filters:
         - type: URLRewrite
           urlRewrite:
@@ -77,14 +75,11 @@ spec:
       backendRefs:
         - name: {{ include "supabase.functions.fullname" $ }}
           port: {{ $.Values.functions.service.ports.http }}
-    {{- end }}
 
 
     # auth wildcard (strip /auth/v1/)
-    {{- range $m := list "GET" "POST" "PUT" "PATCH" "DELETE" }}
     - matches:
         - path: { type: PathPrefix, value: /auth/v1/ }
-          method: {{ $m }}
       filters:
         - type: URLRewrite
           urlRewrite:
@@ -101,14 +96,37 @@ spec:
       backendRefs:
         - name: {{ include "supabase.auth.fullname" $ }}
           port: {{ $.Values.auth.service.ports.http }}
-    {{- end }}
 
 
-    # realtime (rewrite to /socket)
-    {{- range $m := list "GET" "POST" }}
+    # realtime REST API (rewrite to /api)
     - matches:
+        {{- range $m := list "GET" "POST" "PUT" "PATCH" "DELETE" }}
+        - path: { type: PathPrefix, value: /realtime/v1/api }
+          method: {{ $m }}
+        {{- end }}
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: /api
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            set:
+              - name: Access-Control-Allow-Origin
+                value: "*"
+              - name: Vary
+                value: "Origin"
+      backendRefs:
+        - name: {{ include "supabase.realtime.fullname" $ }}
+          port: {{ $.Values.realtime.service.ports.http }}
+
+    # realtime websocket and fallback (rewrite to /socket)
+    - matches:
+        {{- range $m := list "GET" "POST" }}
         - path: { type: PathPrefix, value: /realtime/v1/ }
           method: {{ $m }}
+        {{- end }}
       filters:
         - type: URLRewrite
           urlRewrite:
@@ -125,7 +143,6 @@ spec:
       backendRefs:
         - name: {{ include "supabase.realtime.fullname" $ }}
           port: {{ $.Values.realtime.service.ports.http }}
-    {{- end }}
 
 
     # pg-meta (strip /pg/)

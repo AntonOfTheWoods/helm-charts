@@ -416,7 +416,8 @@ analytics:
   image:
     registry: docker.io
     repository: supabase/logflare
-    tag: 1.35.1
+    tag: 1.39.3
+
     pullPolicy: IfNotPresent
     digest: ""
     pullSecrets: []
@@ -648,7 +649,7 @@ auth:
   image:
     registry: docker.io
     repository: supabase/auth
-    tag: v2.188.1
+    tag: v2.189.0
     digest: ""
     ## Specify a imagePullPolicy
     ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
@@ -1037,13 +1038,13 @@ functions:
   # kongConnectTimeoutMs: 60000
   # kongRetries: 3
 
-  workerMemoryLimitMb: 150
-  workerTimeoutSec: 400
-  workerCPUTimeSoftLimitMs: 1000
-  workerCPUTimeHardLimitMs: 2000
-  workerNoModuleCache: false
-  workerForceCreate: false
-  workerNetAccessDisabled: false
+  # workerMemoryLimitMb: 150
+  # workerTimeoutSec: 400
+  # workerCPUTimeSoftLimitMs: 1000
+  # workerCPUTimeHardLimitMs: 2000
+  # workerNoModuleCache: false
+  # workerForceCreate: false
+  # workerNetAccessDisabled: false
   # workerImportMapPath:  # no default value
 
   replicaCount: 1
@@ -1074,24 +1075,24 @@ functions:
     http: 80
   livenessProbe:
     enabled: true
-    initialDelaySeconds: 30
+    initialDelaySeconds: 1
     periodSeconds: 10
     timeoutSeconds: 5
-    failureThreshold: 6
+    failureThreshold: 10
     successThreshold: 1
   readinessProbe:
     enabled: true
-    initialDelaySeconds: 5
+    initialDelaySeconds: 1
     periodSeconds: 10
     timeoutSeconds: 5
-    failureThreshold: 6
+    failureThreshold: 10
     successThreshold: 1
   startupProbe:
     enabled: false
-    initialDelaySeconds: 5
+    initialDelaySeconds: 1
     periodSeconds: 10
     timeoutSeconds: 5
-    failureThreshold: 6
+    failureThreshold: 10
     successThreshold: 1
   customLivenessProbe: {}
   customReadinessProbe: {}
@@ -1195,10 +1196,9 @@ imgproxy:
   existingConfigmap: ""
   extraConfigExistingConfigmap: ""
   image:
-    # FIXME: why is upstream still using `image: darthsim/imgproxy:v3.8.0`?
     registry: docker.io
     repository: darthsim/imgproxy
-    tag: v3.31.1
+    tag: v3.31.3
     digest: ""
     pullPolicy: IfNotPresent
     pullSecrets: []
@@ -1425,6 +1425,10 @@ istio:
     enabled: false
     statusCode: 308
 
+  # Translate new opaque sb_* API keys into JWT-style headers at ingress, mirroring upstream Kong/Envoy behavior.
+  apiKeyTranslation:
+    enabled: true
+
   # # Enable bootstrap creation of a shared gateway if create=false and an existing one is not found.
   # bootstrapShared: false
 
@@ -1475,7 +1479,7 @@ meta:
   image:
     registry: docker.io
     repository: supabase/postgres-meta
-    tag: v0.96.2
+    tag: v0.96.5
     digest: ""
     ## Specify a imagePullPolicy
     ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
@@ -1930,7 +1934,7 @@ realtime:
   image:
     registry: docker.io
     repository: supabase/realtime
-    tag: v2.86.2
+    tag: v2.90.1
     digest: ""
     ## Specify a imagePullPolicy
     ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
@@ -2335,7 +2339,7 @@ rest:
   image:
     registry: docker.io
     repository: postgrest/postgrest
-    tag: v14.6
+    tag: v14.8
     digest: ""
     ## Specify a imagePullPolicy
     ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
@@ -2785,7 +2789,9 @@ storage:
   image:
     registry: docker.io
     repository: supabase/storage-api
-    tag: v1.48.5
+    # tag: v1.48.5
+    tag: v1.58.7
+
     digest: ""
     ## Specify a imagePullPolicy
     ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
@@ -3255,7 +3261,8 @@ studio:
   image:
     registry: docker.io
     repository: supabase/studio
-    tag: 2026.03.30-sha-12a43e5
+    # tag: 2026.03.30-sha-12a43e5
+    tag: 2026.04.27-sha-5f60601
     digest: ""
     ## Specify a imagePullPolicy
     ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'

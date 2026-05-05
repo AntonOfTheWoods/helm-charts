@@ -1,8 +1,8 @@
 {{- /*
 Waypoint-level AuthorizationPolicies enforcing Supabase API key model (mandatory when gateway.enabled).
 Strategy:
-1. Public (no key) access: /auth/v1/verify, /auth/v1/callback, /auth/v1/authorize
-2. Anon OR Service key required: /auth/v1/*, /rest/v1/*, /realtime/v1/*, /storage/v1/*, /functions/v1/*
+1. Public (no key) access: open auth endpoints, OAuth metadata, SAML metadata/ACS, functions, storage
+2. Anon OR Service key required: /auth/v1/*, /rest/v1/*, /realtime/v1/*
 3. Service key ONLY: /pg/*
 Implicit deny for everything else.
 
@@ -84,7 +84,12 @@ spec:
               - "/auth/v1/verify"
               - "/auth/v1/callback"
               - "/auth/v1/authorize"
+              - "/auth/v1/.well-known/jwks.json"
+              - "/.well-known/oauth-authorization-server"
+              - "/sso/saml/acs"
+              - "/sso/saml/metadata"
               - "/functions/v1/*"
+              - "/storage/v1/*"
 ---
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
@@ -123,7 +128,6 @@ spec:
               - "/auth/v1/*"
               - "/rest/v1/*"
               - "/realtime/v1/*"
-              - "/storage/v1/*"
 ---
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
