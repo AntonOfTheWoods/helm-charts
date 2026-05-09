@@ -120,7 +120,9 @@ spec:
               value: {{ .Values.dbSSL | quote }}
 
             - name: POSTGRES_BACKEND_URL
-              value: $(DB_DRIVER)://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?search_path=auth&sslmode=$(DB_SSL)
+              value: $(DB_DRIVER)://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=$(DB_SSL)
+            - name: DATABASE_URL
+              value: $(POSTGRES_BACKEND_URL)
 
             - name: USER_FUNCTIONS_PATH
               value: {{ default "/functions" .Values.functions.userFunctionsPath }}

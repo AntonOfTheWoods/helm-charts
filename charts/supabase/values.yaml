@@ -2789,7 +2789,6 @@ storage:
   image:
     registry: docker.io
     repository: supabase/storage-api
-    # tag: v1.48.5
     tag: v1.58.7
 
     digest: ""
@@ -3173,7 +3172,7 @@ storage:
   persistence:
     ## @param storage.persistence.enabled Enable persistence using Persistent Volume Claims
     ##
-    enabled: true
+    enabled: false
     ## @param storage.persistence.mountPath Path to mount the volume at.
     ##
     mountPath: /supabase/supabase-storage
@@ -3261,7 +3260,6 @@ studio:
   image:
     registry: docker.io
     repository: supabase/studio
-    # tag: 2026.03.30-sha-12a43e5
     tag: 2026.04.27-sha-5f60601
     digest: ""
     ## Specify a imagePullPolicy
