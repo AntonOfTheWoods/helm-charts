@@ -16,7 +16,7 @@ spec:
     {{- include "supabase.gateway.validatedHosts" . | nindent 4 }}
     - {{ include "supabase.api.baseHost" . | quote }}
   rules:
-    {{- $functionRouteMethods := list "GET" "POST" "PUT" "PATCH" "DELETE" }}
+    {{- $functionRouteMethods := list "GET" "HEAD" "POST" "PUT" "PATCH" "DELETE" "OPTIONS" }}
     {{- $functionSplits := list }}
     {{- with .Values.functions.routing }}
     {{- $functionSplits = (.splits | default (list)) }}
@@ -39,6 +39,12 @@ spec:
             path:
               type: ReplaceFullPath
               replaceFullPath: {{ $split.rewritePath }}
+        {{- else if $split.rewritePrefixMatch }}
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: {{ $split.rewritePrefixMatch }}
         {{- end }}
         - type: ResponseHeaderModifier
           responseHeaderModifier:
