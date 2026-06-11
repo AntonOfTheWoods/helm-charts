@@ -26,10 +26,16 @@ spec:
     {{- $paths := ($split.paths | default (list)) }}
     {{- if and (gt (len $paths) 0) $split.backend.serviceName $split.backend.port }}
     - matches:
+        {{- if $split.rewritePrefixMatch }}
+        {{- range $p := $paths }}
+        - path: { type: PathPrefix, value: {{ $p.value }} }
+        {{- end }}
+        {{- else }}
         {{- range $m := $functionRouteMethods }}
         {{- range $p := $paths }}
         - path: { type: {{ ($p.type | default "Exact") }}, value: {{ $p.value }} }
           method: {{ $m }}
+        {{- end }}
         {{- end }}
         {{- end }}
       filters:
